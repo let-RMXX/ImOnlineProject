@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background"
+    tools:context=".activity.LoginRegisterActivity">
+
+    <ImageView
+        android:id="@+id/logo1"
+        android:layout_width="219dp"
+        android:layout_height="202dp"
+        android:layout_marginBottom="64dp"
+        app:layout_constraintBottom_toTopOf="@+id/SignInButton1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        app:srcCompat="@drawable/logo" />
+
+    <Button
+        android:id="@+id/SignInButton1"
+        android:layout_width="150dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="64dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/button_background_fill"
+        android:onClick="signinButton"
+        android:text="Sign In"
+        app:layout_constraintBottom_toTopOf="@+id/SignUpButton1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/logo1" />
+
+    <Button
+        android:id="@+id/SignUpButton1"
+        android:layout_width="150dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/button_background_fill"
+        android:onClick="signupButton"
+        android:text="Sign Up"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/SignInButton1" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

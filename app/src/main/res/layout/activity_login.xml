@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".activity.LoginActivity">
+
+    <ImageView
+        android:id="@+id/loginBackButton"
+        android:layout_width="67dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/helloAgainText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.046"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed"
+        app:srcCompat="@drawable/baseline_arrow_circle_left_24" />
+
+    <TextView
+        android:id="@+id/helloAgainText"
+        android:layout_width="261dp"
+        android:layout_height="63dp"
+        android:shadowColor="#80000000"
+        android:text="Hello Again!"
+        android:textColor="#000000"
+        android:textSize="48sp"
+        app:layout_constraintBottom_toTopOf="@+id/signInText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/loginBackButton" />
+
+    <TextView
+        android:id="@+id/signInText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Sign in your account"
+        android:textColor="#80000000"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/enterEmailLogin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/helloAgainText" />
+
+    <EditText
+        android:id="@+id/enterEmailLogin"
+        android:layout_width="280dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/edit_text_background"
+        android:ems="10"
+        android:hint="Enter your email address"
+        android:inputType="textPersonName"
+        android:textAlignment="center"
+        android:textColorHint="#80000000"
+        app:layout_constraintBottom_toTopOf="@+id/enterPasswordLogin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/signInText" />
+
+    <EditText
+        android:id="@+id/enterPasswordLogin"
+        android:layout_width="280dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/edit_text_background"
+        android:ems="10"
+        android:hint="Enter your Password"
+        android:inputType="textPassword"
+        android:textAlignment="center"
+        android:textColorHint="#80000000"
+        app:layout_constraintBottom_toTopOf="@+id/forgotPasswordLogin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/enterEmailLogin" />
+
+    <Button
+        android:id="@+id/signInButton"
+        android:layout_width="280dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/signin_button_background"
+        android:text="Sign in"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/orWithTextViewLogin"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/forgotPasswordLogin" />
+
+    <Button
+        android:id="@+id/SignInGoogleButton"
+        android:layout_width="280dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/button_background"
+        android:text="Sign in with Google"
+        android:textAlignment="textEnd"
+        android:textColor="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/SignInGitHubButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/orWithTextViewLogin" />
+
+    <Button
+        android:id="@+id/SignInGitHubButton"
+        android:layout_width="280dp"
+        android:layout_height="62dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/button_background"
+        android:text="Sign in with GitHub"
+        android:textAlignment="textEnd"
+        android:textColor="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/dontHaveTextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/SignInGoogleButton" />
+
+    <TextView
+        android:id="@+id/dontHaveTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="72dp"
+        android:layout_marginTop="16dp"
+        android:text="Don't have an account? Let's "
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/SignInGitHubButton" />
+
+    <TextView
+        android:id="@+id/signUpText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Sign up"
+        android:textColor="#3282B8"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/dontHaveTextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/dontHaveTextView"
+        app:layout_constraintTop_toBottomOf="@+id/SignInGitHubButton" />
+
+    <TextView
+        android:id="@+id/orWithTextViewLogin"
+        android:layout_width="258dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:text="- - - - - - -  Or with  - - - - - - -"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/SignInGoogleButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/signInButton" />
+
+    <TextView
+        android:id="@+id/forgotPasswordLogin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Forgot your password?"
+        android:textColor="#3282B8"
+        app:layout_constraintBottom_toTopOf="@+id/signInButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.246"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/enterPasswordLogin" />
+
+    <ImageView
+        android:id="@+id/githubImage"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        app:layout_constraintBottom_toBottomOf="@+id/SignInGoogleButton"
+        app:layout_constraintEnd_toEndOf="@+id/SignInGoogleButton"
+        app:layout_constraintHorizontal_bias="0.127"
+        app:layout_constraintStart_toStartOf="@+id/SignInGoogleButton"
+        app:layout_constraintTop_toTopOf="@+id/SignInGoogleButton"
+        app:srcCompat="@drawable/google_icon" />
+
+    <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        app:layout_constraintBottom_toBottomOf="@+id/SignInGitHubButton"
+        app:layout_constraintEnd_toEndOf="@+id/SignInGitHubButton"
+        app:layout_constraintHorizontal_bias="0.127"
+        app:layout_constraintStart_toStartOf="@+id/SignInGitHubButton"
+        app:layout_constraintTop_toTopOf="@+id/SignInGitHubButton"
+        app:srcCompat="@drawable/github_icon" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
