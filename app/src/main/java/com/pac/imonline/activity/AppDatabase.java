@@ -9,7 +9,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {Community.class, UserEntity.class, EducationActivity.class, ProfileActivity.class, WorkActivity.class, Contact.class, Message.class}, version = 6, exportSchema = false)
+@Database(entities = {Community.class, UserEntity.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String dbName = "imonlinedb";
@@ -48,13 +48,4 @@ public abstract class AppDatabase extends RoomDatabase {
 
     public abstract CommunityDao getCommunityDao();
 
-    public abstract ProfileDAO getProfileDAO();
-
-    public abstract EducationDAO getEducationDAO();
-
-    public abstract WorkDAO getWorkDAO();
-
-    public abstract ContactDao getContactDao();
-
-    public abstract MessageDao getMessageDao();
 }
