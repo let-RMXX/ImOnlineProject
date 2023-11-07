@@ -25,25 +25,6 @@ public abstract class AppDatabase extends RoomDatabase {
         return appDatabase;
     }
 
-    public static AppDatabase getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                            AppDatabase.class, "imonlinedb").allowMainThreadQueries()
-                    .addCallback(new Callback() {
-                        @Override
-                        public void onCreate(@NonNull SupportSQLiteDatabase db) {
-                            super.onCreate(db);
-                            db.execSQL("INSERT INTO profileActivity VALUES(1,'','name','about', 'phone', 'email', 'location')");
-                            db.execSQL("INSERT INTO contact VALUES(1, 'Zusman Thato', 'zusthato@gmail.com', '', '')");
-                        }
-
-                    })
-                    .build();
-        }
-
-        return INSTANCE;
-    }
-
     public abstract UserDao userDao();
 
     public abstract CommunityDao getCommunityDao();
