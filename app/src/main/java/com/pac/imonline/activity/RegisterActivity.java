@@ -25,7 +25,7 @@ public class RegisterActivity extends AppCompatActivity {
         enterEmailRegister = findViewById(R.id.enterEmailRegister);
         enterPasswordRegister = findViewById(R.id.enterPasswordRegister);
         signUpButton = findViewById(R.id.signUpButton);
-        ImageView backButton = findViewById(R.id.registerBackButton);
+        ImageView BackButton = findViewById(R.id.registerBackButton);
         signUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -84,6 +84,13 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
+        BackButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(RegisterActivity.this, LoginRegisterActivity.class));
+                finish();
+            }
+        });
     }
 
     private Boolean validateInput(UserEntity userEntity) {
