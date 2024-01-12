@@ -27,7 +27,7 @@ public class ApiDbListActivity extends AppCompatActivity {
         textViewResult = findViewById(R.id.textViewResult);
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://192.168.1.69:8000/api/usersinfo/")
+                .baseUrl("http://10.0.2.2:8000/api/usersinfo/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
