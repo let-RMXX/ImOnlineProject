@@ -7,7 +7,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.pac.imonline.R;
-
 import java.util.List;
 
 import retrofit2.Call;
@@ -16,18 +15,19 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import com.pac.imonline.activity.ImOnlineApi;
 public class ApiDbListActivity extends AppCompatActivity {
     private TextView textViewResult;
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post);
 
         textViewResult = findViewById(R.id.textViewResult);
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8000/api/usersinfo/")
+                .baseUrl("http://10.0.0.2:8000/api/usersinfo/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 

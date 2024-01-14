@@ -1,7 +1,8 @@
 package com.pac.imonline.activity;
 
+import static com.pac.imonline.activity.ApiDbListActivity.*;
+
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -13,6 +14,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.pac.imonline.R;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText enterUsernameRegister, enterEmailRegister, enterPasswordRegister;
@@ -20,6 +28,9 @@ public class RegisterActivity extends AppCompatActivity {
     private ImageView backButton;
 
     private UserDao userDao;
+    private ImOnlineApi imOnlineApi;
+
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +44,7 @@ public class RegisterActivity extends AppCompatActivity {
         backButton = findViewById(R.id.registerBackButton);
 
         userDao = AppDatabase.getAppDatabase(getApplicationContext()).userDao();
+        imOnlineApi = ApiClient.getClient().create(ImOnlineApi.class);
 
         signUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -44,7 +56,12 @@ public class RegisterActivity extends AppCompatActivity {
 
                 if (validateInput(userEntity)) {
                     // Check if username and email exist locally
-                    checkLocalUserExistence(userEntity);
+                    executorService.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            checkLocalUserExistence(userEntity);
+                        }
+                    });
                 } else {
                     Toast.makeText(getApplicationContext(), "Fill All Fields!", Toast.LENGTH_SHORT).show();
                 }
@@ -61,38 +78,77 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void checkLocalUserExistence(final UserEntity userEntity) {
-        new AsyncTask<Void, Void, Boolean>() {
-            @Override
-            protected Boolean doInBackground(Void... voids) {
-                return userDao.getUserByUsername(userEntity.getUsername()) != null ||
-                        userDao.getUserByEmail(userEntity.getEmail()) != null;
-            }
+        boolean userExists = userDao.getUserByUsername(userEntity.getUsername()) != null ||
+                userDao.getUserByEmail(userEntity.getEmail()) != null;
 
-            @Override
-            protected void onPostExecute(Boolean userExists) {
-                if (userExists) {
+        if (userExists) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
                     Toast.makeText(getApplicationContext(), "Username or Email already exists locally!", Toast.LENGTH_SHORT).show();
-                } else {
-                    // If the username and email don't exist, proceed with registration
-                    registerUserLocally(userEntity);
                 }
-            }
-        }.execute();
+            });
+        } else {
+            // If the username and email don't exist, proceed with registration
+            registerUserLocally(userEntity);
+        }
     }
 
     private void registerUserLocally(final UserEntity userEntity) {
-        new AsyncTask<Void, Void, Void>() {
+        executorService.execute(new Runnable() {
             @Override
-            protected Void doInBackground(Void... voids) {
+            public void run() {
                 userDao.registerUser(userEntity);
-                return null;
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), "User Successfully Registered Locally!", Toast.LENGTH_SHORT).show();
+                        // Register the user remotely (via API)
+                        registerUserRemotely(userEntity);
+                    }
+                });
+            }
+        });
+    }
+
+    private void registerUserRemotely(UserEntity userEntity) {
+        Call<Void> call = imOnlineApi.registerUser(
+                userEntity.getUsername(),
+                userEntity.getEmail(),
+                userEntity.getPassword()
+        );
+
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "User Successfully Registered Remotely!", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "Failed to register user remotely. User is registered locally.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
             }
 
             @Override
-            protected void onPostExecute(Void aVoid) {
-                Toast.makeText(getApplicationContext(), "User Successfully Registered Locally!", Toast.LENGTH_SHORT).show();
+            public void onFailure(Call<Void> call, Throwable t) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), "Network error during registration! User is registered locally.", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
-        }.execute();
+        });
     }
 
     private boolean validateInput(UserEntity userEntity) {
