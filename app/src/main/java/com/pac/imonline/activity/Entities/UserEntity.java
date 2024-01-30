@@ -1,4 +1,4 @@
-package com.pac.imonline.activity;
+package com.pac.imonline.activity.Entities;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;

@@ -73,15 +73,6 @@ public class CommunityAdapter extends RecyclerView.Adapter<CommunityAdapter.Comm
                         .apply(new RequestOptions())
                         .into(bannerImageView);
             }
-
-            // Load banner image using Picasso library
-            //if (community.getBannerUrl() != null) {
-              //  Picasso.get()
-                //        .load(community.getBannerUrl())
-                  //      .into(bannerImageView);
-            //} else {
-              //  bannerImageView.setImageResource(R.drawable.bannerdefimg);
-            //}
         }
     }
 }

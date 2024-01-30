@@ -1,8 +1,10 @@
-package com.pac.imonline.activity;
+package com.pac.imonline.activity.Database;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
+
+import com.pac.imonline.activity.Entities.UserEntity;
 
 @Dao
 public interface UserDao {
