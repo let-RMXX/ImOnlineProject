@@ -1,24 +1,29 @@
-package com.pac.imonline.activity;
+package com.pac.imonline.activity.Fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Community;
+import com.pac.imonline.activity.CommunityAdapter;
+import com.pac.imonline.activity.CommunityDao;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.MainActivity;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
-
-public class CommunityListActivity extends AppCompatActivity {
+public class CommunityListFragment extends Fragment {
 
     private static final int REQUEST_CREATE_COMMUNITY = 1;
     private static final int RESULT_COMMUNITY_CREATED = 3;
@@ -29,20 +34,24 @@ public class CommunityListActivity extends AppCompatActivity {
     private CommunityDao communityDao;
     private AppDatabase appDatabase;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_community_list);
+    public CommunityListFragment() {
 
-        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_community_list, container, false);
+
+        BottomNavigationView bottomNavigationView = view.findViewById(R.id.bottomNavigationView);
         bottomNavigationView.setOnItemSelectedListener(item -> {
 
-            switch (item.getItemId()){
+            switch (item.getItemId()) {
 
                 case R.id.botton_home:
-                    startActivity(new Intent(getApplicationContext(), MainActivity.class));
-                    overridePendingTransition(R.anim.slide_right, R.anim.slide_out_left);
-                    finish();
+                    startActivity(new Intent(requireContext(), MainActivity.class));
+                    requireActivity().overridePendingTransition(R.anim.slide_right, R.anim.slide_out_left);
+                    requireActivity().finish();
                     return true;
 
             }
@@ -50,16 +59,16 @@ public class CommunityListActivity extends AppCompatActivity {
             return false;
         });
 
-        communityRecyclerView = findViewById(R.id.communityRecyclerView);
-        communityRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        communityRecyclerView = view.findViewById(R.id.communityRecyclerView);
+        communityRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         communityList = new ArrayList<>();
         communityAdapter = new CommunityAdapter(communityList);
         communityRecyclerView.setAdapter(communityAdapter);
 
-        appDatabase = AppDatabase.getAppDatabase(this);
+        appDatabase = AppDatabase.getAppDatabase(requireContext());
         communityDao = appDatabase.getCommunityDao();
 
-        communityDao.getAllCommunities().observe(this, new Observer<List<Community>>() {
+        communityDao.getAllCommunities().observe(getViewLifecycleOwner(), new Observer<List<Community>>() {
             @Override
             public void onChanged(List<Community> communities) {
                 communityList.clear();
@@ -67,15 +76,19 @@ public class CommunityListActivity extends AppCompatActivity {
                 communityAdapter.notifyDataSetChanged();
             }
         });
+
+        return view;
     }
 
     public void onCreateCommunityClicked(View view) {
-        Intent intent = new Intent(this, CreateCommunityActivity.class);
-        startActivityForResult(intent, REQUEST_CREATE_COMMUNITY);
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new CreateCommunityFragment())
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CREATE_COMMUNITY && resultCode == RESULT_COMMUNITY_CREATED && data != null) {
