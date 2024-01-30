@@ -14,10 +14,10 @@
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
 
-        <!-- Customize your theme here. -->
+        <!-- Bottom App Bar -->
 
     </style>
-        <style name="SlideActivityAnimation" parent="@android:style/Animation.Activity">
+        <style name="AppTheme.BottomAppBar" parent="Theme.MaterialComponents.Light.NoActionBar">
             <item name="android:activityOpenEnterAnimation">@anim/slide_right</item>
             <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
         </style>

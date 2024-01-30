@@ -1,66 +1,191 @@
 package com.pac.imonline.activity.Fragments;
 
+import static androidx.core.graphics.TypefaceCompatApi21Impl.init;
+
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toolbar;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Constant;
+import com.pac.imonline.activity.HomeActivity;
+import com.pac.imonline.activity.adapter.PostsAdapter;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link HomeFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import Models.User;
+
 public class HomeFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+  private View view;
+  public static RecyclerView recyclerView;
+  public static ArrayList<Post> arrayList;
+  private SwipeRefreshLayout refreshLayout;
+  private PostsAdapter postsAdapter;
+  private MaterialToolbar toolbar;
+  private SharedPreferences sharedPreferences;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+  public HomeFragment(){}
 
-    public HomeFragment() {
-        // Required empty public constructor
+      @NonNull
+      @Override
+      public View onCreateView(@Nullable LayoutInflater inflater,@Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
+
+        view = inflater.inflate(R.id.layout_home, container, false);
+        init();
+        return view;
+
+      }
+
+      private void init(){
+
+        sharedPreferences = getContext().getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        recyclerView = view.findViewById(R.id.recyclerHome);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        refreshLayout = view.findViewById(R.id.swipeHome);
+        toolbar = view.findViewById(R.id.toolbarHome);
+        ((HomeActivity)getContext()).setSupportActionBar(toolbar);
+        setHasOptionsMenu(true);
+
+          getPosts();
+
+          refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+              @Override
+              public void onRefresh() {
+                  getPosts();
+              }
+          });
+
+      }
+
+      private void getPosts(){
+
+        arrayList = new ArrayList<>();
+        refreshLayout.setRefreshing(true);
+
+        StringRequest request = new StringRequest(Request.Method.GET, Constant.POSTS, response -> {
+
+            try {
+
+                JSONObject object = new JSONObject(response);
+
+                if(object.getBoolean("success")){
+
+                    JSONArray array = new JSONArray(object.getString("posts"));
+                    for (int i = 0; i < array.length(); i++){
+
+                        JSONObject postObject = array.getJSONObject(i);
+                        JSONObject userObject = postObject.getJSONObject("user");
+
+                        User user = new User();
+                        user.setId(userObject.getInt("id"));
+                        user.setUserName(userObject.getString("name")+""+userObject.getString("lastname"));
+                        user.setPhoto(userObject.getString("photo"));
+
+                        Post post = new Post();
+                        post.setId(postObject.getInt("id"));
+                        post.setUser(user);
+                        post.setLikes(postObject.getInt("likesCount"));
+                        post.setComments(postObject.getInt("commentsCount"));
+                        post.setDate(postObject.getString("created_at"));
+                        post.setDesc(postObject.getString("desc"));
+                        post.setPhoto(postObject.getString("photo"));
+                        post.setSelfLike(postObject.getBoolean("selfLike"));
+
+                        arrayList.add(post);
+
+                    }
+
+                    postsAdapter = new PostsAdapter(getContext(), arrayList);
+                    recyclerView.setAdapter(postsAdapter);
+
+                }
+
+            }catch(JSONException e){
+
+                e.printStackTrace();
+
+            }
+
+            refreshLayout.setRefreshing(false);
+
+        },error -> {
+
+            error.printStackTrace();
+            refreshLayout.setRefreshing(false);
+
+        }){
+
+            //provide token in header
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError{
+
+                String token = sharedPreferences.getString("token", "");
+                HashMap<String, String> map = new HashMap<>();
+                map.put("Authorization", "Bearer"+token);
+                return map;
+
+            }
+
+        };
+
+        RequestQueue queue = Volley.nevRequestQueue(getContext());
+        queue.add(request);
+
+      }
+
+      @Override
+      public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater){
+
+        inflater.inflate(R.menu.menu_search,menu);
+        MenuInflater item = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView)item.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener(){
+
+            @Override
+            public boolean onQueryTextSubmit(String query){
+
+                return false;
+
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText){
+
+                postsAdapter.getFilter().filter(newText);
+
+                return false;
+
+            }
+
+        });
+
+        super.onCreateOptionsMenu(menu, inflater);
+
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment HomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static HomeFragment newInstance(String param1, String param2) {
-        HomeFragment fragment = new HomeFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false);
-    }
 }

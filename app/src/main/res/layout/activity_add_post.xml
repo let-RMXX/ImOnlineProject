@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".activity.AddPostActivity">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:title=""
+        android:elevation="1dp">
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/baseline_arrow_circle_left_24"
+            android:background="#00FFFFFF"
+            android:layout_marginRight="12dp"
+            android:onClick="cancelPost" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Post"
+            android:textSize="18sp"
+            android:textColor="@color/black"/>
+
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginTop="6dp">
+
+            <ImageView
+                android:id="@+id/imgAddPost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Change Photo"
+                android:textColor="@color/blue"
+                android:layout_marginBottom="20dp"
+                android:gravity="center_horizontal"
+                android:onClick="changePhoto"/>
+
+            <EditText
+                android:id="@+id/txtDescAddPost"
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:inputType="textMultiLine"
+                android:gravity="left"
+                android:textSize="15sp"
+                android:padding="8dp"
+                android:background="@drawable/txt_background"/>
+
+            <Button
+                android:id="@+id/btnAddPost"
+                android:layout_width="match_parent"
+                android:layout_height="62dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/signin_button_background"
+                android:text="Post"
+                android:textAlignment="center"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:layout_marginLeft="62dp"
+                android:layout_marginRight="62dp"/>
+
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>
