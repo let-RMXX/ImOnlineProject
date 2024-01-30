@@ -1,18 +1,16 @@
 package com.pac.imonline.activity;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.View;
+import android.os.Handler;
 import android.widget.ImageView;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Fragments.CommunityListFragment;
 import com.pac.imonline.activity.Fragments.CreateCommunityFragment;
@@ -45,6 +43,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //the app will pause for 1.5s and any thing in run method will run
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                SharedPreferences userPref = getApplicationContext().getSharedPreferences("user",Context.MODE_PRIVATE);
+                boolean isLoggedIn = userPref.getBoolean("isLoggedIn", false);
+
+                if(isLoggedIn){
+
+                    startActivity(new Intent(MainActivity.this, HomeActivity.class));
+                    finish();
+
+                }else {
+
+                    isFirstTime();
+
+                }
+
+            }
+        },1500);
+
         // Initialize fragments
         loginRegisterFragment = new LoginRegisterFragment();
         communityListFragment = new CommunityListFragment();
@@ -58,6 +79,30 @@ public class MainActivity extends AppCompatActivity {
 
         // Set the default fragment
         setFragment(loginRegisterFragment);
+
+    }
+
+    private void isFirstTime(){
+
+        //checking if the app is running for the first time
+        SharedPreferences preferences = getApplication().getSharedPreferences("onBoard", Context.MODE_PRIVATE);
+        boolean isFirstTime = preferences.getBoolean("isFirstTime", true);
+        //default value is true
+        if(isFirstTime){
+
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("isFirstTime", false);
+            editor.apply();
+
+            //start onBoard activity
+            startActivity(new Intent(MainActivity.this,WalkthroughPagesAnimFragment.class));
+            finish();
+
+        }else {
+
+            startActivity(new Intent(MainActivity.this,));
+
+        }
 
     }
 
