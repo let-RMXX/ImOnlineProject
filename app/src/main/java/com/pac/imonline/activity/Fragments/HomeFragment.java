@@ -8,9 +8,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toolbar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,6 +21,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
@@ -54,7 +55,7 @@ public class HomeFragment extends Fragment {
       @Override
       public View onCreateView(@Nullable LayoutInflater inflater,@Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
 
-        view = inflater.inflate(R.id.layout_home, container, false);
+        view = inflater.inflate(R.layout.layout_home, container, false);
         init();
         return view;
 
@@ -146,14 +147,14 @@ public class HomeFragment extends Fragment {
 
                 String token = sharedPreferences.getString("token", "");
                 HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer"+token);
+                map.put("Authorization", "Bearer" + token);
                 return map;
 
             }
 
         };
 
-        RequestQueue queue = Volley.nevRequestQueue(getContext());
+        RequestQueue queue = Volley.newRequestQueue(getContext());
         queue.add(request);
 
       }
@@ -162,8 +163,8 @@ public class HomeFragment extends Fragment {
       public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater){
 
         inflater.inflate(R.menu.menu_search,menu);
-        MenuInflater item = menu.findItem(R.id.search);
-        SearchView searchView = (SearchView)item.getActionView();
+        MenuItem item = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView) item.getActionView();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener(){
 
             @Override

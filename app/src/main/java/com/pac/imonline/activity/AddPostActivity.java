@@ -25,6 +25,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class AddPostActivity extends AppCompatActivity {
     private ProgressDialog dialog;
     private SharedPreferences sharedPreferences;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +50,12 @@ public class AddPostActivity extends AppCompatActivity {
         init();
     }
 
+
     private void init(){
+
+        dialog = new ProgressDialog(this);
+        dialog.setCancelable(false);
+
 
         sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         btnPost = findViewById(R.id.btnAddPost);
@@ -78,6 +85,7 @@ public class AddPostActivity extends AppCompatActivity {
             }
 
         });
+
 
     }
 
@@ -139,7 +147,7 @@ public class AddPostActivity extends AppCompatActivity {
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError{
 
-                String token = preferences.getString("token", "");
+                String token = sharedPreferences.getString("token", "");
                 HashMap<String, String> map = new HashMap<>();
                 map.put("Authorization", "Bearer "+token);
                 return map;
@@ -159,20 +167,22 @@ public class AddPostActivity extends AppCompatActivity {
 
         };
 
-        RequestQueued queue = Volley.nevRequestQueue(AddPostActivity.this);
+        RequestQueued queue = Volley.newRequestQueue(AddPostActivity.this);
         queue.add(request);
 
     }
 
-    private String bitmapToString(Bitmap bitmap){
+    private String bitmapToString(Bitmap bitmap) {
 
-        if(bitmap != null){
+        if (bitmap!=null){
 
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayInputStream);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
             byte [] array = byteArrayOutputStream.toByteArray();
             return Base64.encodeToString(array,Base64.DEFAULT);
+
         }
+
         return "";
     }
 
