@@ -43,29 +43,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //the app will pause for 1.5s and any thing in run method will run
-        Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-
-                SharedPreferences userPref = getApplicationContext().getSharedPreferences("user",Context.MODE_PRIVATE);
-                boolean isLoggedIn = userPref.getBoolean("isLoggedIn", false);
-
-                if(isLoggedIn){
-
-                    startActivity(new Intent(MainActivity.this, HomeActivity.class));
-                    finish();
-
-                }else {
-
-                    isFirstTime();
-
-                }
-
-            }
-        },1500);
-
         // Initialize fragments
         loginRegisterFragment = new LoginRegisterFragment();
         communityListFragment = new CommunityListFragment();
@@ -99,9 +76,8 @@ public class MainActivity extends AppCompatActivity {
             finish();
 
         }else {
-
-            startActivity(new Intent(MainActivity.this,));
-
+            startActivity(new Intent(MainActivity.this,AuthActivity.class));
+            finish();
         }
 
     }

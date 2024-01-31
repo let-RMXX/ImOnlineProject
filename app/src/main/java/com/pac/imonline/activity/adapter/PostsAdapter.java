@@ -1,6 +1,7 @@
 package com.pac.imonline.activity.adapter;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,17 +21,39 @@ import java.util.ArrayList;
 
 import Models.Posts;
 import de.hdodenhof.circleimageview.CircleImageView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.GET;
+import retrofit2.http.Url;
 
-public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>{
+import com.pac.imonline.activity.Constant;
+
+public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder> {
 
     private Context context;
     private ArrayList<Posts> list;
     private ArrayList<Posts> listAll;
 
+    private Retrofit retrofit;
+    private ApiService apiService;
+
     public PostsAdapter(Context context, ArrayList<Posts> list) {
         this.context = context;
         this.list = list;
-        this.listAll = new ArrayList<>(list)
+        this.listAll = new ArrayList<>(list);
+
+        retrofit = new Retrofit.Builder()
+                .baseUrl(Constant.URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        apiService = retrofit.create(ApiService.class);
+
+        // Call method to fetch data
+        fetchData();
     }
 
     @NonNull
@@ -42,17 +65,15 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
     @Override
     public void onBindViewHolder(@NonNull PostsHolder holder, int position) {
-
-        Post post = list.get(position);
-        Picasso.get().load(Constant.URL+"storage/profiles/"+post.getUser()).getPhoto().into(holder.imgProfile));
-        Picasso.get().load(Constant.URL+"storage/posts/"+post.getPhoto()).into(holder.imgPost);
+        Posts post = list.get(position);
+        Picasso.get().load(Constant.URL + "storage/profiles/" + post.getUser()).into(holder.imgProfile);
+        Picasso.get().load(Constant.URL + "storage/posts/" + post.getPhoto()).into(holder.imgPost);
 
         holder.txtName.setText(post.getUser().getUserName());
-        holder.txtComments.setText("View all "+post.getComments());
-        holder.txtLikes.setText(post.getLikes()+"Likes");
+        holder.txtComments.setText("View all " + post.getComments());
+        holder.txtLikes.setText(post.getLikes() + " Likes");
         holder.txtDate.setText(post.getDate());
         holder.txtDesc.setText(post.getDesc());
-
     }
 
     @Override
@@ -60,56 +81,74 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         return list.size();
     }
 
-    Filter filter = new Filter(){
-
+    Filter filter = new Filter() {
         @Override
-        protected FilterResults performFiltering(CharSequence constraint){
-
-            ArrayList<Post> filteredList = new ArrayList<>();
-            if (constraint.toString().isEmpty()){
+        protected FilterResults performFiltering(CharSequence constraint) {
+            ArrayList<Posts> filteredList = new ArrayList<>();
+            if (constraint.toString().isEmpty()) {
                 filteredList.addAll(listAll);
             } else {
-                for (Post post : listAll){
-                    if(post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase())
-                            || post.getUser().getUserName().toLowerCase().contains(constraint.toString().toLowerCase())){
+                for (Posts post : listAll) {
+                    if (post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase())
+                            || post.getUser().getUserName().toLowerCase().contains(constraint.toString().toLowerCase())) {
                         filteredList.add(post);
                     }
                 }
-
             }
 
-        FilterResults results = new FilterResults();
-        results.values = filteredList;
-            return  results;
-
+            FilterResults results = new FilterResults();
+            results.values = filteredList;
+            return results;
         }
 
         @Override
-        protected void publishResults(CharSequence constraint, FilterResults results){
-
+        protected void publishResults(CharSequence constraint, FilterResults results) {
             list.clear();
-            list.addAll((Collection<? extends Post>) results.values);
+            list.addAll((ArrayList<Posts>) results.values);
             notifyDataSetChanged();
-
         }
-
     };
 
-    public Filter getFilter(){
-
+    public Filter getFilter() {
         return filter;
-
     }
 
-    class PostsHolder extends RecyclerView.ViewHolder{
+    private void fetchData() {
+        Call<ArrayList<Posts>> call = apiService.getPosts();
+        call.enqueue(new Callback<ArrayList<Posts>>() {
+            @Override
+            public void onResponse(Call<ArrayList<Posts>> call, Response<ArrayList<Posts>> response) {
+                if (response.isSuccessful()) {
+                    list.addAll(response.body());
+                    listAll.addAll(response.body());
+                    notifyDataSetChanged();
+                } else {
+                    // Handle error
+                    Log.e("PostsAdapter", "API call failed");
+                }
+            }
 
+            @Override
+            public void onFailure(Call<ArrayList<Posts>> call, Throwable t) {
+                // Handle failure
+                Log.e("PostsAdapter", "API call failed", t);
+            }
+        });
+    }
+
+    public interface ApiService {
+        // Api endpoint
+        @GET(Constant.POSTS)
+        Call<ArrayList<Posts>> getPosts();
+    }
+
+    class PostsHolder extends RecyclerView.ViewHolder {
         private TextView txtName, txtDate, txtDesc, txtLikes, txtComments;
         private CircleImageView imgProfile;
         private ImageView imgPost;
-        private ImageButton btnPostOption, btnLike,btnComment;
+        private ImageButton btnPostOption, btnLike, btnComment;
 
-        public PostsHolder (@NonNull View itemView){
-
+        public PostsHolder(@NonNull View itemView) {
             super(itemView);
             txtName = itemView.findViewById(R.id.txtPostName);
             txtDate = itemView.findViewById(R.id.txtPostDate);
@@ -121,10 +160,6 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
             btnPostOption = itemView.findViewById(R.id.btnPostOption);
             btnLike = itemView.findViewById(R.id.btnPostLike);
             btnComment = itemView.findViewById(R.id.btnPostComment);
-
         }
-
-
     }
-
 }

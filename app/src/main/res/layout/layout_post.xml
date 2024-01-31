@@ -23,28 +23,28 @@
                 android:src="@color/dark_grey"/>
 
             <LinearLayout
-                android:layout_width="odp"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:paddingLeft="6dp"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingLeft="6dp">
 
                 <TextView
                     android:id="@+id/txtPostName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Rui Machado"
-                    android:textSize="16sp"
                     android:textColor="@color/black"
-                    android:textStyle="bold"/>
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/txtPostDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Jun 13"
-                    android:textSize="11sp"
-                    android:textColor="@color/dark_grey"/>
+                    android:textColor="@color/dark_grey"
+                    android:textSize="11sp" />
 
             </LinearLayout>
 

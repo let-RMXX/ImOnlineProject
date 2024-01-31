@@ -10,8 +10,8 @@ public class UserEntity {
     @PrimaryKey(autoGenerate = true)
     Integer id;
 
-    @ColumnInfo(name = "username")
-    String username;
+    @ColumnInfo(name = "name")
+    String name;
 
     @ColumnInfo(name = "email")
     String email;
@@ -27,12 +27,12 @@ public class UserEntity {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
+    public String getName() {
+        return name;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getEmail() {

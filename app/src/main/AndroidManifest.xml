@@ -16,6 +16,15 @@
         android:theme="@style/Theme.ImOnline"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <service
+            android:name=".activity.Api.ApiService"
+            android:enabled="true"
+            android:exported="true"></service>
+        <service
+            android:name=".activity.Api.UserService"
+            android:enabled="true"
+            android:exported="true" />
+
         <activity
             android:name=".activity.AddPostActivity"
             android:exported="false" />

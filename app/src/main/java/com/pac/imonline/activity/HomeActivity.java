@@ -15,10 +15,8 @@ import com.pac.imonline.activity.Fragments.HomeFragment;
 public class HomeActivity extends AppCompatActivity {
 
     private FragmentManager fragmentManager;
-
-    private fragmentManager fragmentManager;
     private FloatingActionButton fab;
-    private static final int GALLARY_ADD_POST = 2;
+    private static final int GALLERY_ADD_POST = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +34,7 @@ public class HomeActivity extends AppCompatActivity {
         fab.setOnClickListener(v->{
             Intent i = new Intent(Intent.ACTION_PICK);
             i.setType("image/*");
-            startActivityForResult(i,GALLARY_ADD_POST);
+            startActivityForResult(i,GALLERY_ADD_POST);
 
         });
 
