@@ -23,6 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -134,7 +135,7 @@ public class UserInfoActivity extends AppCompatActivity {
                     SharedPreferences.Editor editor = userPref.edit();
                     editor.putString("photo", object.getString("photo"));
                     editor.apply();
-                    startActivity(new Intent(UserInfoFragment.this, HomeFragment.class));
+                    startActivity(new Intent(UserInfoActivity.this, HomeActivity.class));
                     finish();
 
                 }
@@ -187,15 +188,17 @@ public class UserInfoActivity extends AppCompatActivity {
 
     }
 
-    private String bitmapToString(Bitmap bitmap){
+    private String bitmapToString(Bitmap bitmap) {
 
-        if(bitmap != null){
+        if (bitmap!=null){
 
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayInputStream);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
             byte [] array = byteArrayOutputStream.toByteArray();
             return Base64.encodeToString(array,Base64.DEFAULT);
+
         }
+
         return "";
     }
 
