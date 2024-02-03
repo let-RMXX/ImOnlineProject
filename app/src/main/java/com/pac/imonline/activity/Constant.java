@@ -13,5 +13,7 @@ public class Constant {
     public static final String DELETE_POST = POSTS+"/delete";
     public static final String LIKE_POST = POSTS+"/like";
     public static final String COMMENTS = POSTS+"/comments";
+    public static final String CREATE_COMMENT = HOME+"/comments/create";
+    public static final String DELETE_COMMENT = HOME+"/comments/delete";
 
 }

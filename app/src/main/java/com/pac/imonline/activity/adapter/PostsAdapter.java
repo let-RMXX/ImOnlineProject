@@ -77,6 +77,7 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
         );
 
+        //like click
         holder.btnLike.setOnClickListener(v->{
 
             holder.btnLike.setImageResource(
@@ -200,6 +201,7 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
             Intent i = new Intent(((HomeActivity)context), CommentActivity.class);
             i.putExtra("postId", post.getId());
+            i.putExtra("postPosition", position);
             context.startActivity(i);
 
         });
@@ -208,6 +210,7 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
             Intent i = new Intent(((HomeActivity)context),CommentActivity.class);
             i.putExtra("postId", post.getId());
+            i.putExtra("postPosition", position);
             context.startActivity(i);
 
         });

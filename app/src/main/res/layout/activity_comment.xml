@@ -49,22 +49,13 @@
             android:background="@color/white"
             android:layout_alignParentBottom="true">
 
-            <ImageButton
-                android:id="@+id/btnCancelComment"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/baseline_close_24"
-                android:background="#00FFFFFF"
-                android:layout_marginLeft="4dp"
-                android:layout_marginRight="4dp"
-                android:layout_gravity="center_horizontal"/>
-
             <EditText
                 android:id="@+id/txtAddComment"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_gravity="bottom"
+                android:layout_marginLeft="6dp"
                 android:layout_marginBottom="4dp"
                 android:hint="Write something"
                 android:inputType="textMultiLine"
@@ -78,7 +69,8 @@
                 android:src="@drawable/baseline_send_message"
                 android:background="@drawable/signin_button_background"
                 android:layout_gravity="center_vertical"
-                android:layout_marginRight="6dp"/>
+                android:layout_marginRight="6dp"
+                android:onClick="addComment"/>
 
         </LinearLayout>
 
