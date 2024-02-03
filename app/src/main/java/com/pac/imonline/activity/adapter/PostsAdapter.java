@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.pac.imonline.R;
+import com.pac.imonline.activity.CommentActivity;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.EditPostActivity;
 import com.pac.imonline.activity.HomeActivity;
@@ -195,8 +196,25 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
         });
 
+        holder.txtComments.setOnClickListener(v->{
+
+            Intent i = new Intent(((HomeActivity)context), CommentActivity.class);
+            i.putExtra("postId", post.getId());
+            context.startActivity(i);
+
+        });
+
+        holder.btnComment.setOnClickListener(v->{
+
+            Intent i = new Intent(((HomeActivity)context),CommentActivity.class);
+            i.putExtra("postId", post.getId());
+            context.startActivity(i);
+
+        });
+
     }
 
+    //delete post
     private void deletePost(int postId, int position){
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
