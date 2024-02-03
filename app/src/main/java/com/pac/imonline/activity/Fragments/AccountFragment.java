@@ -25,11 +25,13 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
 import com.pac.imonline.activity.AuthActivity;
 import com.pac.imonline.activity.Constant;
+import com.pac.imonline.activity.EditUserInfoActivity;
 import com.pac.imonline.activity.HomeActivity;
 import com.pac.imonline.activity.adapter.AccountPostAdapter;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ public class AccountFragment extends Fragment {
     private ArrayList<Post> arrayList;
     private SharedPreferences preferences;
     private AccountPostAdapter adapter;
+    private String imgUrl = "";
 
     public AccountFragment(){}
 
@@ -75,8 +78,15 @@ public class AccountFragment extends Fragment {
         btnEditAccount = view.findViewById(R.id.btnEditAccount);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(),2));
-        getData();
 
+
+        btnEditAccount.setOnClickListener(v->{
+
+            Intent i = new Intent (((HomeActivity)getContext()), EditUserInfoActivity.class);
+            i.putExtra("imgUrl", imgUrl);
+            startActivity(i);
+
+        });
 
     }
 
@@ -106,8 +116,11 @@ public class AccountFragment extends Fragment {
                     Picasso.get().load(Constant.URL+"storage/profiles/"+user.getString("photo")).into(imgProfile);
                     adapter = new AccountPostAdapter(getContext(),arrayList);
                     recyclerView.setAdapter(adapter);
+                    imgUrl = Constant.URL+"storage/profiles/"+user.getString("photo");
 
                 }
+            }catch (JSONException e){
+                e.printStackTrace();
             }
 
         },error->{
@@ -212,6 +225,14 @@ public class AccountFragment extends Fragment {
         }
 
         super.onHiddenChanged(hidden);
+
+    }
+
+    @Override
+    public void onResume(){
+
+        super.onResume();
+        getData();
 
     }
 
