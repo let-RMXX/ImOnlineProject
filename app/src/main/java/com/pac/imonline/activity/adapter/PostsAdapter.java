@@ -1,12 +1,18 @@
 package com.pac.imonline.activity.adapter;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,9 +20,16 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Constant;
+import com.pac.imonline.activity.EditPostActivity;
+import com.pac.imonline.activity.HomeActivity;
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import Models.Posts;
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -26,11 +39,15 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
     private Context context;
     private ArrayList<Posts> list;
     private ArrayList<Posts> listAll;
+    private SharedPreferences preferences;
 
     public PostsAdapter(Context context, ArrayList<Posts> list) {
         this.context = context;
         this.list = list;
-        this.listAll = new ArrayList<>(list)
+        this.listAll = new ArrayList<>(list);
+
+        preferences = context.getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+
     }
 
     @NonNull
@@ -52,6 +69,125 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         holder.txtLikes.setText(post.getLikes()+"Likes");
         holder.txtDate.setText(post.getDate());
         holder.txtDesc.setText(post.getDesc());
+
+        if (post.getUser().getId()==preferences.getInt("id", 0)){
+
+            holder.btnPostOption.setVisibility(View.VISIBLE);
+
+        } else {
+
+            holder.btnPostOption.setVisibility(View.GONE);
+
+        }
+
+        holder.btnPostOption.setOnClickListener(view -> {
+
+            PopupMenu popupMenu = new PopupMenu(context,holder.btnPostOption);
+            popupMenu.inflate(R.menu.menu_post_options);
+            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem menuItem) {
+
+                    switch (menuItem.getItemId()){
+
+                        case R.id.item_edit: {
+
+                            Intent i = new Intent(((HomeActivity)context), EditPostActivity.class);
+                            i.putExtra("postId", post.getId());
+                            i.putExtra("position", position);
+                            i.putExtra("text", post.getDesc());
+                            context.startActivity(i);
+                            return true;
+
+                        }
+
+                        case R.id.item_delete:{
+
+                            deletePost(post.getId(), position);
+                            return true;
+
+                        }
+                    }
+
+                    return false;
+                }
+            });
+
+            popupMenu.show();
+
+        });
+
+    }
+
+    private void deletePost(int postId, int position){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("Confirm");
+        builder.setMessage("Delete post?");
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int wich) {
+
+                StringRequest request = new StringRequest(Request.Method.POST,Constant.DELETE_POST, response ->{
+
+                    try{
+
+                        JSONObject object = new JSONObject(response);
+                        if (object.getBoolean("success")){
+
+                            list.remove(position);
+                            notifyItemRemoved(position);
+                            notifyDataSetChanged();
+                            listAll.clear();
+                            listAll.addAll(list);
+
+                        }
+
+                    }catch(JSONException e){
+
+                        e.printStackTrace();
+
+                    }
+
+                },error->{
+
+                }){
+
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError{
+
+                        String token = preferences.getString("token", "");
+                        HashMap<String, String> map = new HashMap<>();
+                        map.put("Authorization", "Bearer "+token);
+                        return map;
+
+                    }
+
+                    @Override
+                    protected Map<String, String> getParams() throws AuthFailureError{
+
+                        HashMap<String, String> map = new HashMap<>();
+                        map.put("id", postId+"");
+                        return map;
+
+                    }
+
+                };
+
+                RequestQueue queue = Volley.newRequestQueue(context);
+                queue.add(request);
+
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+            }
+        });
+
+        builder.show();
 
     }
 
@@ -119,6 +255,7 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
             imgProfile = itemView.findViewById(R.id.imgPostProfile);
             imgPost = itemView.findViewById(R.id.imgPostPhoto);
             btnPostOption = itemView.findViewById(R.id.btnPostOption);
+            btnPostOption.setVisibility(View.GONE);
             btnLike = itemView.findViewById(R.id.btnPostLike);
             btnComment = itemView.findViewById(R.id.btnPostComment);
 
