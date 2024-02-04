@@ -115,6 +115,12 @@ public class UserInfoActivity extends AppCompatActivity {
 
         }
 
+        if (txtLastName.getText().toString().isEmpty()){
+            layoutLastName.setErrorEnabled(true);
+            layoutLastName.setError("Last Name is required");
+            return false;
+        }
+
         return true;
     }
 
