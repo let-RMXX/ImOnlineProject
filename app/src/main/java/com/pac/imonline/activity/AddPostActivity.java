@@ -1,5 +1,8 @@
 package com.pac.imonline.activity;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -8,35 +11,26 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.Fragments.HomeFragment;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import Models.Posts;
-
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-
-import retrofit2.http.Header;
-import retrofit2.http.Multipart;
-import retrofit2.http.POST;
-import retrofit2.http.Part;
+import Models.User;
 
 public class AddPostActivity extends AppCompatActivity {
 
@@ -46,10 +40,8 @@ public class AddPostActivity extends AppCompatActivity {
     private Bitmap bitmap = null;
     private static final int GALLERY_CHANGE_POST = 3;
     private ProgressDialog dialog;
-    private SharedPreferences preferences;
+    private SharedPreferences sharedPreferences;
 
-    private Retrofit retrofit;
-    private ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,120 +50,173 @@ public class AddPostActivity extends AppCompatActivity {
         init();
     }
 
-    private void init() {
-        preferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
 
-        btnPost = findViewById(R.id.btnAddPost);
-        imgPost = findViewById(R.id.imgAddPost);
-        txtDesc = findViewById(R.id.txtDescAddPost);
+    private void init(){
 
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
 
+
+        sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        btnPost = findViewById(R.id.btnAddPost);
+        imgPost = findViewById(R.id.imgAddPost);
+        txtDesc = findViewById(R.id.txtDescAddPost);
+        dialog.setCancelable(false);
+
         imgPost.setImageURI(getIntent().getData());
         try {
-            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), getIntent().getData());
-        } catch (Exception e) {
+            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),getIntent().getData());
+        }catch(IOException e){
+
             e.printStackTrace();
+
         }
 
-        btnPost.setOnClickListener(v -> {
-            if (!txtDesc.getText().toString().isEmpty()) {
+        btnPost.setOnClickListener(v->{
+
+            if(!txtDesc.getText().toString().isEmpty()){
+
                 post();
-            } else {
+
+            }else{
+
                 Toast.makeText(this, "Description is required", Toast.LENGTH_SHORT).show();
+
             }
+
         });
+
+
     }
 
-    private void post() {
-        dialog.setMessage("Posting");
+    private void post(){
+
+        dialog.setCancelMessage("Posting");
         dialog.show();
 
-        String token = preferences.getString("token", "");
+        StringRequest request = new StringRequest(Request.Method.POST,Constant.ADD_POST,response ->{
 
-        RequestBody descBody = RequestBody.create(MediaType.parse("text/plain"), txtDesc.getText().toString().trim());
+            try {
 
-        MultipartBody.Part photoPart = null;
-        if (bitmap != null) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-            byte[] array = byteArrayOutputStream.toByteArray();
-            RequestBody photoBody = RequestBody.create(MediaType.parse("image/*"), array);
-            photoPart = MultipartBody.Part.createFormData("photo", "photo.jpg", photoBody);
-        }
+                JSONObject object = new JSONObject(response);
 
-        apiService = getRetrofitInstance();
+                if (object.getBoolean("success")){
 
-        Call<Posts> call = apiService.addPost("Bearer " + token, descBody, photoPart);
-        call.enqueue(new Callback<Posts>() {
-            @Override
-            public void onResponse(Call<Posts> call, Response<Posts> response) {
-                if (response.isSuccessful()) {
-                    Posts post = response.body();
+                    JSONObject postObject = object.getJSONObject("post");
+                    JSONObject userObject = object.getJSONObject("user");
+
+                    User user = new User();
+                    user.setId(userObject.getInt("id"));
+                    user.setUserName(userObject.getString("name")+" "+userObject.getString("lastname"));
+                    user.setPhoto(userObject.getString("photo"));
+
+                    Post post = new Post();
+                    post.setUser(user);
+                    post.setId(postObject.getInt("id"));
+                    post.setSelfLike(false);
+                    post.setPhoto(postObject.getString("photo"));
+                    post.setDesc(postObject.getString("desc"));
+                    post.setComments(0);
+                    post.setLikes(0);
+                    post.setDate(postObject.getString("created_at"));
 
                     HomeFragment.arrayList.add(0, post);
                     HomeFragment.recyclerView.getAdapter().notifyItemInserted(0);
                     HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                    Toast.makeText(AddPostActivity.this, "Posted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Posted", Toast.LENGTH_SHORT).show();
                     finish();
-                } else {
-                    // Handle error
-                    Toast.makeText(AddPostActivity.this, "Failed to post", Toast.LENGTH_SHORT).show();
+
                 }
-                dialog.dismiss();
+
+            }catch(JSONException e){
+
+                e.printStackTrace();
+
             }
 
+            dialog.dismiss();
+
+        },error -> {
+
+            error.printStackTrace();
+            dialog.dismiss();
+
+        }){
+
+            //add token to header
             @Override
-            public void onFailure(Call<Posts> call, Throwable t) {
-                // Handle failure
-                Toast.makeText(AddPostActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+            public Map<String, String> getHeaders() throws AuthFailureError{
+
+                String token = sharedPreferences.getString("token", "");
+                HashMap<String, String> map = new HashMap<>();
+                map.put("Authorization", "Bearer "+token);
+                return map;
+
             }
-        });
+
+            //add params
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError{
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("desc", txtDesc.getText().toString().trim());
+                map.put("photo", bitmapToString(bitmap));
+                return map;
+
+            }
+
+        };
+
+        RequestQueued queue = Volley.newRequestQueue(AddPostActivity.this);
+        queue.add(request);
+
     }
 
-    private ApiService getRetrofitInstance() {
-        if (retrofit == null) {
-            retrofit = new Retrofit.Builder()
-                    .baseUrl(Constant.URL)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build();
+    private String bitmapToString(Bitmap bitmap) {
+
+        if (bitmap!=null){
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
+            byte [] array = byteArrayOutputStream.toByteArray();
+            return Base64.encodeToString(array,Base64.DEFAULT);
+
         }
-        return retrofit.create(ApiService.class);
+
+        return "";
     }
 
-    private interface ApiService {
-        @Multipart
-        @POST(Constant.ADD_POST)
-        Call<Posts> addPost(
-                @Header("Authorization") String authorization,
-                @Part("desc") RequestBody desc,
-                @Part MultipartBody.Part photo
-        );
+
+    public void cancelPost(View view){
+
+        super.onBackPressed();
+
+    }
+
+    public void changePhoto(View view){
+
+       Intent i = new Intent(Intent.ACTION_PICK);
+       i.setType("image/*");
+       startActivityForResult(i,GALLERY_CHANGE_POST);
+
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data){
+
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == GALLERY_CHANGE_POST && resultCode == RESULT_OK) {
-            Uri imgUri = data.getData();
+        if(requestCode==GALLERY_CHANGE_POST && resultCode==RESULT_OK){
+
+            Uri imgUri =data.getData();
             imgPost.setImageURI(imgUri);
             try {
-                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imgUri);
-            } catch (Exception e) {
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),imgUri);
+            } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
+
     }
 
-    public void cancelPost() {
-        super.onBackPressed();
-    }
-
-    public void changePhoto() {
-        Intent i = new Intent(Intent.ACTION_PICK);
-        i.setType("image/*");
-        startActivityForResult(i, GALLERY_CHANGE_POST);
-    }
 }

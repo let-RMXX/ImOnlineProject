@@ -1,5 +1,8 @@
 package com.pac.imonline.activity;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -8,45 +11,32 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Fragments.HomeFragment;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import retrofit2.http.Header;
-import retrofit2.http.Multipart;
-import retrofit2.http.POST;
-import retrofit2.http.Part;
 
 public class UserInfoActivity extends AppCompatActivity {
 
+    private TextInputLayout layoutName,layoutLastName;
+    private TextInputEditText txtName,txtLastName;
     private TextView txtSelectPhoto;
     private Button btnContinue;
     private CircleImageView circleImageView;
-    private TextInputEditText txtNameUserInfo;
-    private TextInputEditText txtLastNameUserInfo;
     private static final int GALLERY_ADD_PROFILE = 1;
     private Bitmap bitmap = null;
     private SharedPreferences userPref;
@@ -59,123 +49,163 @@ public class UserInfoActivity extends AppCompatActivity {
         init();
     }
 
-    private void init() {
+    private void init(){
+
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
         userPref = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        layoutLastName = findViewById(R.id.txtLayoutLastNameUserInfo);
+        layoutName = findViewById(R.id.txtLayoutNameUserInfo);
+        txtName = findViewById(R.id.txtNameUserInfo);
+        txtLastName = findViewById(R.id.txtLastNameUserInfo);
         txtSelectPhoto = findViewById(R.id.txtSelectPhoto);
         btnContinue = findViewById(R.id.btnContinue);
         circleImageView = findViewById(R.id.imgUserInfo);
 
-        // Initialize the name and last name views
-        txtNameUserInfo = findViewById(R.id.txtNameUserInfo);
-        txtLastNameUserInfo = findViewById(R.id.txtLastNameUserInfo);
+        //pick a photo from the gallery
+        txtSelectPhoto.setOnClickListener(v->{
 
-        // Pick a photo from the gallery
-        txtSelectPhoto.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_PICK);
             i.setType("image/*");
-            startActivityForResult(i, GALLERY_ADD_PROFILE);
+            startActivityForResult(i,GALLERY_ADD_PROFILE);
+
         });
 
-        btnContinue.setOnClickListener(v -> {
-            // Validate fields
-            if (validate()) {
+        btnContinue.setOnClickListener(v->{
+
+            //validate fields
+            if(validate()){
+
                 saveUserInfo();
+
             }
+
         });
+
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == GALLERY_ADD_PROFILE && resultCode == RESULT_OK) {
+        if (requestCode==GALLERY_ADD_PROFILE && resultCode==RESULT_OK){
+
             Uri imgUri = data.getData();
             circleImageView.setImageURI(imgUri);
 
-            try {
+            try{
+
                 bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imgUri);
-            } catch (IOException e) {
+
+            }catch(IOException e){
+
                 e.printStackTrace();
+
             }
+
         }
     }
 
-    private boolean validate() {
+    private boolean validate(){
+
+        if(txtName.getText().toString().isEmpty()){
+
+            layoutName.setErrorEnabled(true);
+            layoutName.setError("Name is Required");
+            return false;
+
+        }
+
+        if (txtLastName.getText().toString().isEmpty()){
+            layoutLastName.setErrorEnabled(true);
+            layoutLastName.setError("Last Name is required");
+            return false;
+        }
+
         return true;
     }
 
-    private void saveUserInfo() {
+    private void saveUserInfo(){
+
         dialog.setMessage("Saving");
         dialog.show();
+        String name = txtName.getText().toString().trim();
+        String lastname = txtLastName.getText().toString().trim();
 
-        String name = txtNameUserInfo.getText().toString().trim();
-        String lastname = txtLastNameUserInfo.getText().toString().trim();
+        StringRequest request = new StringRequest(Request.Method.POST,Constant.SAVE_USER_INFO,response->{
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(Constant.HOME)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+            try{
 
-        ApiService apiService = retrofit.create(ApiService.class);
-        String token = userPref.getString("token", "");
+                JSONObject object = new JSONObject(response);
+                if(object.getBoolean("success")){
 
-        RequestBody nameBody = RequestBody.create(MediaType.parse("text/plain"), name);
+                    SharedPreferences.Editor editor = userPref.edit();
+                    editor.putString("photo", object.getString("photo"));
+                    editor.apply();
+                    startActivity(new Intent(UserInfoActivity.this, HomeActivity.class));
+                    finish();
 
-        MultipartBody.Part photoPart = null;
-        if (bitmap != null) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-            byte[] array = byteArrayOutputStream.toByteArray();
-            RequestBody photoBody = RequestBody.create(MediaType.parse("image/*"), array);
-            photoPart = MultipartBody.Part.createFormData("photo", "photo.jpg", photoBody);
-        }
-
-        Call<UserInfoResponse> call = apiService.saveUserInfo("Bearer " + token, nameBody, photoPart);
-        call.enqueue(new Callback<UserInfoResponse>() {
-            @Override
-            public void onResponse(Call<UserInfoResponse> call, Response<UserInfoResponse> response) {
-                if (response.isSuccessful()) {
-                    UserInfoResponse userInfoResponse = response.body();
-                    if (userInfoResponse != null && userInfoResponse.isSuccess()) {
-                        SharedPreferences.Editor editor = userPref.edit();
-                        editor.putString("photo", userInfoResponse.getPhoto());
-                        editor.apply();
-                        startActivity(new Intent(UserInfoActivity.this, HomeFragment.class));
-                        finish();
-                    }
                 }
-                dialog.dismiss();
+
+            }catch(JSONException e){
+
+                e.printStackTrace();
+
             }
 
+            dialog.dismiss();
+
+        },error ->{
+
+            error.printStackTrace();
+            dialog.dismiss();
+
+        }){
+
+            //add a token to the headers
             @Override
-            public void onFailure(Call<UserInfoResponse> call, Throwable t) {
-                t.printStackTrace();
-                dialog.dismiss();
+            public Map<String, String> getHeaders() throws AuthFailureError {
+
+                String token = userPref.getString(
+                        "token",
+                        ""
+                );
+                HashMap<String,String> map = new HashMap<>();
+                map.put("Authorization", "Bearer"+token);
+                return map;
+
             }
-        });
+
+            //add params
+            @Override
+            protected Map<String,String> getParamns() throws AuthFailureError{
+
+                HashMap<String,String> map = new HashMap<>();
+                map.put("name", name);
+                map.put("lastname", lastname);
+                map.put("photo",bitmapToString(bitmap));
+                return map;
+
+            }
+
+        };
+
+        // RequestQueue queue = Volley.newRequestQueue(UserInfoActivity.this);
+        // queue.add(request);
+
     }
 
-    private interface ApiService {
-        @Multipart
-        @POST(Constant.SAVE_USER_INFO)
-        Call<UserInfoResponse> saveUserInfo(
-                @Header("Authorization") String authorization,
-                @Part("name") RequestBody name,
-                @Part MultipartBody.Part photo
-        );
-    }
+    private String bitmapToString(Bitmap bitmap) {
 
-    private static class UserInfoResponse {
-        private boolean success;
-        private String photo;
+        if (bitmap!=null){
 
-        public boolean isSuccess() {
-            return success;
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
+            byte [] array = byteArrayOutputStream.toByteArray();
+            return Base64.encodeToString(array,Base64.DEFAULT);
+
         }
 
-        public String getPhoto() {
-            return photo;
-        }
+        return "";
     }
+
 }

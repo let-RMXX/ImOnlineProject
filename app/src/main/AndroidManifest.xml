@@ -26,6 +26,15 @@
             android:exported="true" />
 
         <activity
+            android:name=".activity.EditUserInfoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.CommentActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.EditPostActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.AddPostActivity"
             android:exported="false" />
         <activity
