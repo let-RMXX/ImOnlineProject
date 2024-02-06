@@ -1,8 +1,5 @@
 package com.pac.imonline.activity;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -18,21 +15,23 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Fragments.HomeFragment;
+import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Api.RetrofitClient;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-import Models.User;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class AddPostActivity extends AppCompatActivity {
+
+    private ApiService apiService;
 
     private Button btnPost;
     private ImageView imgPost;
@@ -42,20 +41,18 @@ public class AddPostActivity extends AppCompatActivity {
     private ProgressDialog dialog;
     private SharedPreferences sharedPreferences;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_post);
         init();
+
+        apiService = RetrofitClient.createService();
     }
 
-
-    private void init(){
-
+    private void init() {
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
-
 
         sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         btnPost = findViewById(R.id.btnAddPost);
@@ -65,158 +62,81 @@ public class AddPostActivity extends AppCompatActivity {
 
         imgPost.setImageURI(getIntent().getData());
         try {
-            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),getIntent().getData());
-        }catch(IOException e){
-
+            bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), getIntent().getData());
+        } catch (IOException e) {
             e.printStackTrace();
-
         }
 
-        btnPost.setOnClickListener(v->{
-
-            if(!txtDesc.getText().toString().isEmpty()){
-
+        btnPost.setOnClickListener(v -> {
+            if (!txtDesc.getText().toString().isEmpty()) {
                 post();
-
-            }else{
-
+            } else {
                 Toast.makeText(this, "Description is required", Toast.LENGTH_SHORT).show();
-
             }
-
         });
-
-
     }
 
-    private void post(){
-
-        dialog.setCancelMessage("Posting");
+    private void post() {
+        dialog.setMessage("Posting");
         dialog.show();
 
-        StringRequest request = new StringRequest(Request.Method.POST,Constant.ADD_POST,response ->{
+        // Assuming you have a method like this in ApiService
+        Call<Void> call = apiService.addPost("Bearer " + sharedPreferences.getString("token", ""),
+                txtDesc.getText().toString().trim(), bitmapToString(bitmap));
 
-            try {
-
-                JSONObject object = new JSONObject(response);
-
-                if (object.getBoolean("success")){
-
-                    JSONObject postObject = object.getJSONObject("post");
-                    JSONObject userObject = object.getJSONObject("user");
-
-                    User user = new User();
-                    user.setId(userObject.getInt("id"));
-                    user.setUserName(userObject.getString("name")+" "+userObject.getString("lastname"));
-                    user.setPhoto(userObject.getString("photo"));
-
-                    Post post = new Post();
-                    post.setUser(user);
-                    post.setId(postObject.getInt("id"));
-                    post.setSelfLike(false);
-                    post.setPhoto(postObject.getString("photo"));
-                    post.setDesc(postObject.getString("desc"));
-                    post.setComments(0);
-                    post.setLikes(0);
-                    post.setDate(postObject.getString("created_at"));
-
-                    HomeFragment.arrayList.add(0, post);
-                    HomeFragment.recyclerView.getAdapter().notifyItemInserted(0);
-                    HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                    Toast.makeText(this, "Posted", Toast.LENGTH_SHORT).show();
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("photo", user.getPhoto());
+                    editor.apply();
+                    startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
                     finish();
-
                 }
-
-            }catch(JSONException e){
-
-                e.printStackTrace();
-
+                dialog.dismiss();
             }
 
-            dialog.dismiss();
 
-        },error -> {
-
-            error.printStackTrace();
-            dialog.dismiss();
-
-        }){
-
-            //add token to header
             @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String token = sharedPreferences.getString("token", "");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer "+token);
-                return map;
-
+            public void onFailure(Call<Void> call, Throwable t) {
+                t.printStackTrace();
+                dialog.dismiss();
             }
-
-            //add params
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError{
-
-                HashMap<String, String> map = new HashMap<>();
-                map.put("desc", txtDesc.getText().toString().trim());
-                map.put("photo", bitmapToString(bitmap));
-                return map;
-
-            }
-
-        };
-
-        RequestQueued queue = Volley.newRequestQueue(AddPostActivity.this);
-        queue.add(request);
-
+        });
     }
 
     private String bitmapToString(Bitmap bitmap) {
-
-        if (bitmap!=null){
-
+        if (bitmap != null) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
-            byte [] array = byteArrayOutputStream.toByteArray();
-            return Base64.encodeToString(array,Base64.DEFAULT);
-
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+            byte[] array = byteArrayOutputStream.toByteArray();
+            return Base64.encodeToString(array, Base64.DEFAULT);
         }
-
         return "";
     }
 
-
-    public void cancelPost(View view){
-
+    public void cancelPost(View view) {
         super.onBackPressed();
-
     }
 
-    public void changePhoto(View view){
-
-       Intent i = new Intent(Intent.ACTION_PICK);
-       i.setType("image/*");
-       startActivityForResult(i,GALLERY_CHANGE_POST);
-
+    public void changePhoto(View view) {
+        Intent i = new Intent(Intent.ACTION_PICK);
+        i.setType("image/*");
+        startActivityForResult(i, GALLERY_CHANGE_POST);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data){
-
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==GALLERY_CHANGE_POST && resultCode==RESULT_OK){
-
-            Uri imgUri =data.getData();
+        if (requestCode == GALLERY_CHANGE_POST && resultCode == RESULT_OK) {
+            Uri imgUri = data.getData();
             imgPost.setImageURI(imgUri);
             try {
-                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(),imgUri);
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imgUri);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
-
     }
-
 }

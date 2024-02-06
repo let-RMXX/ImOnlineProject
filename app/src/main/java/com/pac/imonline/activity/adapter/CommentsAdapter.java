@@ -10,137 +10,114 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Api.ApiService;
 import com.pac.imonline.activity.CommentActivity;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.Fragments.HomeFragment;
+import com.pac.imonline.activity.Models.Posts;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
-import Models.Comment;
+import com.pac.imonline.activity.Models.Comment;
 import de.hdodenhof.circleimageview.CircleImageView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
-public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.CommentsHolder>{
+public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.CommentsHolder> {
 
     private Context context;
     private ArrayList<Comment> list;
     private SharedPreferences preferences;
     private ProgressDialog dialog;
+    private ApiService apiService;
 
     public CommentsAdapter(Context context, ArrayList<Comment> list) {
-
         this.context = context;
         this.list = list;
-
         dialog = new ProgressDialog(context);
         dialog.setCancelable(false);
         preferences = context.getSharedPreferences("user", Context.MODE_PRIVATE);
 
+        // Initialize Retrofit
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(Constant.DELETE_COMMENT)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        apiService = retrofit.create(ApiService.class);
     }
 
     @NonNull
     @Override
     public CommentsHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_comment,parent,false);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_comment, parent, false);
         return new CommentsHolder(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull CommentsHolder holder, int position) {
         Comment comment = list.get(position);
-        Picasso.get().load(comment.getUser().getPhoto()).info(holder.imgProfile);
+        Picasso.get().load(comment.getUser().getPhoto()).into(holder.imgProfile);
         holder.txtName.setText(comment.getUser().getUserName());
         holder.txtDate.setText(comment.getDate());
         holder.txtComment.setText(comment.getComment());
 
-        if(preferences.getInt("id", 0)!=comment.getUser().getId()){
-
+        if (preferences.getInt("id", 0) != comment.getUser().getId()) {
             holder.btnDelete.setVisibility(View.GONE);
-
-        }else {
-
+        } else {
             holder.btnDelete.setVisibility(View.VISIBLE);
-            holder.btnDelete.setOnClickListener(v->{
-
+            holder.btnDelete.setOnClickListener(v -> {
                 AlertDialog.Builder builder = new AlertDialog.Builder(context);
                 builder.setMessage("Are you sure?");
                 builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int which) {
-                        deleteComment(comment.getId(),position);
+                        deleteComment(comment.getId(), position);
                     }
                 });
                 builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int which) {
-
                     }
                 });
                 builder.show();
             });
-
         }
+    }
 
-        private void deleteComment(int commentId, int position){
-            dialog.setMessage("Deleting commnet");
-            dialog.show();
-            StringRequest request = new StringRequest(Request.Method.POST, Constant.DELETE_COMMENT,res->{
+    private void deleteComment(int commentId, int position) {
+        dialog.setMessage("Deleting comment");
+        dialog.show();
 
-                try{
+        String token = preferences.getString("token", "");
 
-                    JSONObject object = new JSONObject(res);
-                    if (object.getBoolean("success")){
-                        list.remove(position);
-                        Post post = HomeFragment.arrayList.get(CommentActivity.postPosition);
-                        post.setComments(post.getComments()-1);
-                        HomeFragment.arrayList.set(CommentActivity.postPosition,post);
-                        HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                        notifyDataSetChanged();
-                    }
-
-                }catch(JSONException e){
-                    e.printStackTrace();
-                }
+        Call<Void> call = apiService.deleteComment("Bearer " + token, commentId);
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
                 dialog.dismiss();
+                if (response.isSuccessful()) {
+                    list.remove(position);
+                    Posts post = HomeFragment.arrayList.get(CommentActivity.postPosition);
+                    post.setComments(post.getComments() - 1);
+                    HomeFragment.arrayList.set(CommentActivity.postPosition, post);
+                    HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
+                    notifyDataSetChanged();
+                }
+            }
 
-            },err->{
-                err.printStackTrace();
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
                 dialog.dismiss();
-            }){
-
-                @Override
-                public Map<String, String> getHeaders() throws AuthFailureError{
-
-                    String token = preferences.getString("token", "");
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Authorization","Bearer "+token);
-                    return map;
-
-                }
-
-                @Override
-                protected Map<String, String> getParams() throws AuthFailureError{
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("id", CommentId+"");
-                    return map;
-                }
-
-            };
-            RequestQueue queue = Volley.newRequestQueue(context);
-            queue.add(request);
-
-        }
-
+                t.printStackTrace();
+            }
+        });
     }
 
     @Override
@@ -148,14 +125,13 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
         return list.size();
     }
 
-    class CommentsHolder extends RecyclerView.ViewHolder{
+    class CommentsHolder extends RecyclerView.ViewHolder {
 
         private CircleImageView imgProfile;
         private TextView txtName, txtDate, txtComment;
         private ImageButton btnDelete;
 
-        public CommentsHolder(@NonNull View itemView){
-
+        public CommentsHolder(@NonNull View itemView) {
             super(itemView);
 
             imgProfile = itemView.findViewById(R.id.imgCommentProfile);
@@ -163,9 +139,6 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.Commen
             txtDate = itemView.findViewById(R.id.txtCommentDate);
             txtComment = itemView.findViewById(R.id.txtCommentText);
             btnDelete = itemView.findViewById(R.id.btnDeleteComment);
-
         }
-
     }
-
 }

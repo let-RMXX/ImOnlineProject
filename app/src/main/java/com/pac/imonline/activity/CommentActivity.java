@@ -1,9 +1,5 @@
 package com.pac.imonline.activity;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -11,20 +7,24 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Fragments.HomeFragment;
+import com.pac.imonline.activity.Models.Posts;
 import com.pac.imonline.activity.adapter.CommentsAdapter;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Api.RetrofitClient;
+import com.pac.imonline.activity.Models.Comment;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-import Models.Comment;
-import Models.User;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class CommentActivity extends AppCompatActivity {
 
@@ -36,6 +36,7 @@ public class CommentActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     private EditText txtAddComment;
     private ProgressDialog dialog;
+    private ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,152 +45,73 @@ public class CommentActivity extends AppCompatActivity {
         init();
     }
 
-    private void init(){
-
+    private void init() {
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
         postPosition = getIntent().getIntExtra("postPosition", -1);
-        preferences = getApplicationContext().getSharedPreferences("user", Context, Context.MODE_PRIVATE)
+        preferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         recyclerView = findViewById(R.id.recyclerComments);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        postId = getIntent().getIntExtra("postId",0);
+        postId = getIntent().getIntExtra("postId", 0);
+        apiService = RetrofitClient.createService();
         getComments();
-
     }
 
-    private void getComments(){
+    private void getComments() {
+        list = new ArrayList<>();
+        apiService.getComments("Bearer " + preferences.getString("token", ""), postId)
+                .enqueue(new Callback<List<Comment>>() {
+                    @Override
+                    public void onResponse(Call<List<Comment>> call, Response<List<Comment>> response) {
+                        if (response.isSuccessful()) {
+                            list.addAll(response.body());
+                            adapter = new CommentsAdapter(CommentActivity.this, list);
+                            recyclerView.setAdapter(adapter);
+                        }
+                    }
 
-        list = new ArrayList<Comment>();
-        StringRequest request = new StringRequest(Request.Method.GET,Constant.COMMENTS, res->{
-
-            try {
-                JSONObject object = new JSONObject(res);
-                if (object.getBoolean("success")){
-                    JSONArray comments = new JSONArray(object.getString("comments"));
-                }for (int i = 0; i < getComments.lenght(); i++) {
-                    JSONObject comment = comments.getJSONObject(i);
-                    JSONObject user = comment.getJSONObject("user");
-
-                    User mUser = new User();
-                    mUser.setId(user.getInt("id"));
-                    mUser.setPhoto(Constant.URL+"storage/profiles/"+user.getString("photo"));
-                    mUser.setUserName(user.getString("name") + " " + user.getString("lastname"));
-
-                    Comment mComment = new Comment();
-                    mComment.setId(comment.getInt("id"));
-                    mComment.setUser(mUser);
-                    mComment.setDate(comment.getString("created_at"));
-                    mComment.setComment(comment.getString("comment"));
-                    list.add(mComment);
-                }
-            }
-
-            adapter = new CommentsAdapter(this,list);
-            recyclerView.setAdapter(adapter);
-
-            }catch(JSONException e){
-                e.printStackTrace();
-            }
-
-        },error->{
-            error.printSatckTrace();
-        }){
-
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String toke = preferences.getString("token","");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer "+token);
-                return map;
-
-            }
-
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError{
-
-                HashMap<String, String> map = new HashMap<>();
-                map.put("id", postId+"");
-                return map;
-            }
-
-        };
-
-        RequestQueue queue = Volley.newRequestQueue(CommentActivity.this);
-        queue.add(request);
-
+                    @Override
+                    public void onFailure(Call<List<Comment>> call, Throwable t) {
+                        t.printStackTrace();
+                    }
+                });
     }
 
-    public void goBack(View view){
-
+    public void goBack(View view) {
         super.onBackPressed();
-
     }
 
     public void addComment(View view) {
-
         String commentText = txtAddComment.getText().toString();
         dialog.setMessage("Adding Comment");
         dialog.show();
-        if (commentText.length()>0){
-            StringRequest request = new StringRequest(Request.Method.POST,Constant.CREATE_COMMENT,res->{
+        if (commentText.length() > 0) {
+            apiService.addComment("Bearer " + preferences.getString("token", ""), postId, commentText)
+                    .enqueue(new Callback<Comment>() {
+                        @Override
+                        public void onResponse(Call<Comment> call, Response<Comment> response) {
+                            if (response.isSuccessful()) {
+                                Comment newComment = response.body();
+                                list.add(newComment);
+                                adapter.notifyDataSetChanged();
+                                txtAddComment.setText("");
 
-                try{
-                    JSONObject object = new JSONObject(res);
-                    if(object.getBoolean("success")){
-                        JSONObject comment = object.getJSONObject("comment");
-                        JSONObject user = comment.getJSONObject("user");
+                                // Update post comments count
+                                Posts posts = HomeFragment.arrayList.get(postPosition);
+                                posts.setComments(posts.getComments() + 1);
+                                HomeFragment.arrayList.set(postPosition, posts);
+                                HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
+                            }
+                            dialog.dismiss();
+                        }
 
-                        Commnet c = new Comment();
-                        User u = new User();
-                        u.setId(user.getInt("id"));
-                        u.setUserName(user.getString("name")+" "+user.getString("lastname"));
-                        u.setPhoto(Constant.URL+"storage/profiles/"+user.getString("photo"));
-                        c.setUser(u);
-                        c.setId(comment.getInt("id"));
-                        c.setDate(comment.getString("created_at"));
-                        c.setComment(comment.getString("comment"));
-
-                        Post post = HomeFragment.arrayList.get(postPosition);
-                        post.setComments(post.getComments()+1);
-                        HomeFragment.arrayList.set(postPosition,post);
-                        HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-
-                        list.add(e);
-                        recyclerView.getAdapter().notifyDataSetChanged();
-                        txtAddComment.setText("");
-                    }
-                }catch(Exception e){
-                    e.printStackTrace();
-                }
-                dialog.dismiss();
-            },err->{
-                err.printStackTrace();
-                dialog.dismiss();
-            }){
-
-                //add token to header
-                @Override
-                public Map<String, String> getHeaders() throws AuthFailureError {
-                    String token = preferences.getString("token", "");
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Authorization", "Bearer " + token);
-                    return map;
-                }
-
-                @Override
-                protected Map<String, String> getParams() throws AuthFailureError{
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("id",postId+"");
-                    map.put("comment",commentText);
-                    return map;
-                }
-            };
-
-            RequestQueue queue = Volley.newRequestQueue(CommentActivity.this);
-            queue.add(request);
-
+                        @Override
+                        public void onFailure(Call<Comment> call, Throwable t) {
+                            t.printStackTrace();
+                            dialog.dismiss();
+                        }
+                    });
         }
     }
 }

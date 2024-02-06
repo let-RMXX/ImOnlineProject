@@ -11,7 +11,10 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.Fragments.HomeFragment;
+import com.pac.imonline.activity.Models.Posts;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,13 +22,18 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class EditPostActivity extends AppCompatActivity {
 
-    private int position = 0, id= 0;
+    private int position = 0, id = 0;
     private EditText txtDesc;
     private Button btnSave;
     private ProgressDialog dialog;
     private SharedPreferences sharedPreferences;
+    private ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,8 +42,7 @@ public class EditPostActivity extends AppCompatActivity {
         init();
     }
 
-    private void init(){
-
+    private void init() {
         sharedPreferences = getApplication().getSharedPreferences("user", Context.MODE_PRIVATE);
         txtDesc = findViewById(R.id.txtDescEditPost);
         btnSave = findViewById(R.id.btnEditPost);
@@ -44,86 +51,44 @@ public class EditPostActivity extends AppCompatActivity {
         position = getIntent().getIntExtra("position", 0);
         id = getIntent().getIntExtra("postId", 0);
         txtDesc.setText(getIntent().getStringExtra("text"));
+        apiService = RetrofitClient.createService();
 
         btnSave.setOnClickListener(view -> {
-
-            if(!txtDesc.getText().toString().isEmpty()){
-
+            if (!txtDesc.getText().toString().isEmpty()) {
                 savePost();
-
             }
-
         });
-
     }
 
-    private void savePost(){
-
+    private void savePost() {
         dialog.setMessage("Saving");
         dialog.show();
-        StringRequest request = new StringRequest(Request.Method.POST,Constant.UPDATE_POST, response ->{
 
-            try {
+        apiService.updatePost("Bearer " + sharedPreferences.getString("token", ""), id, txtDesc.getText().toString())
+                .enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(Call<Void> call, Response<Void> response) {
+                        if (response.isSuccessful()) {
+                            // Update the post in the recycler view
+                            Posts post = HomeFragment.arrayList.get(position);
+                            post.setDesc(txtDesc.getText().toString());
+                            HomeFragment.arrayList.set(position, post);
+                            HomeFragment.recyclerView.getAdapter().notifyItemChanged(position);
+                            HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
+                            finish();
+                        }
+                        dialog.dismiss();
+                    }
 
-                JSONObject object = new JSONObject(response);
-                if (object.getBoolean("success")){
-
-                    //update the post in the recycler view
-                    Post post = HomeFragment.arrayList.get(position);
-                    post.setDesc(txtDesc.getText().toString());
-                    HomeFragment.arrayList.set(position, post);
-                    HomeFragment.recyclerView.getAdapter().notifyItemChanged(position);
-                    HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                    finish();
-
-                }
-
-            } catch(JSONException e){
-
-                e.printStackTrace();
-
-            }
-
-        },error -> {
-
-        }){
-
-            //add token header
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String token = sharedPreferences.getString("token", "");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearber "+token);
-                return map;
-
-            }
-
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError{
-
-                HashMap<String, String> map = new HashMap<>();
-                map.put("id",id+"");
-                map.put("desc", txtDesc.getText().toString());
-                return map;
-
-            }
-
-        };
-
-            RequestQueue queue = Volley.newRequestQueue(EditPostActivity.this);
-            queue.add(request);
-
-
-
-        }
-
+                    @Override
+                    public void onFailure(Call<Void> call, Throwable t) {
+                        t.printStackTrace();
+                        dialog.dismiss();
+                    }
+                });
     }
 
-    public void cancelEdit(View view){
-
+    public void cancelEdit(View view) {
         super.onBackPressed();
-
     }
-
 }

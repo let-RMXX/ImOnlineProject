@@ -1,4 +1,4 @@
-package Models;
+package com.pac.imonline.activity.Models;
 
 public class Posts {
 
