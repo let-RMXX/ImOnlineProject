@@ -1,8 +1,7 @@
 package com.pac.imonline.activity.adapter;
 
-import static android.os.Build.VERSION_CODES.R;
-
 import android.content.Context;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,19 +10,18 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.habib.blogapp.Constant;
-import com.habib.blogapp.Models.Post;
-import com.habib.blogapp.R;
+import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.R;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
-public class AccountPostAdapter extends RecyclerView.Adapter<AccountPostAdapter.AccountPostHolder>{
+public class AccountPostAdapter extends RecyclerView.Adapter<AccountPostAdapter.AccountPostHolder> {
 
     private Context context;
-    private ArrayList<Post> arrayList;
+    private ArrayList<Posts> arrayList;
 
-    public AccountPostAdapter(Context context, ArrayList<Post> arrayList) {
+    public AccountPostAdapter(Context context, ArrayList<Posts> arrayList) {
         this.context = context;
         this.arrayList = arrayList;
     }
@@ -31,7 +29,7 @@ public class AccountPostAdapter extends RecyclerView.Adapter<AccountPostAdapter.
     @NonNull
     @Override
     public AccountPostHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_account_post,parent,false);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_account_post, parent, false);
         return new AccountPostHolder(v);
     }
 
@@ -44,7 +42,6 @@ public class AccountPostAdapter extends RecyclerView.Adapter<AccountPostAdapter.
     public int getItemCount() {
         return arrayList.size();
     }
-
 
     class AccountPostHolder extends RecyclerView.ViewHolder {
 

@@ -1,17 +1,17 @@
 package com.pac.imonline.activity.Fragments;
 
-import static okhttp3.CipherSuite.init;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -23,53 +23,57 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.AuthActivity;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.EditUserInfoActivity;
 import com.pac.imonline.activity.HomeActivity;
+import com.pac.imonline.activity.Models.MyPostResponse;
+import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.activity.Models.User;
 import com.pac.imonline.activity.adapter.AccountPostAdapter;
+import com.pac.imonline.activity.Api.ApiService;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class AccountFragment extends Fragment {
 
     private View view;
     private MaterialToolbar toolbar;
     private CircleImageView imgProfile;
-    private TextView txtName,txtPostsCount;
+    private TextView txtName, txtPostsCount;
     private Button btnEditAccount;
     private RecyclerView recyclerView;
-    private ArrayList<Post> arrayList;
+    private ArrayList<Posts> arrayList;
     private SharedPreferences preferences;
     private AccountPostAdapter adapter;
     private String imgUrl = "";
+    private ApiService apiService;
 
-    public AccountFragment(){}
+    public AccountFragment() {
+    }
 
-        @Nullable
-        @Override
-        public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
-
-            view = inflater.inflate(R.id.layout_account,container,false);
-            init();
-            return view;
-
-        }
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        view = inflater.inflate(R.layout.layout_account, container, false);
+        init();
+        return view;
+    }
 
     private void init() {
-
         preferences = getContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        apiService = RetrofitClient.createService();
         toolbar = view.findViewById(R.id.toolbarAccount);
-        ((HomeActivity)getContext()).setSupportActionBar(toolbar);
+        ((HomeActivity) getContext()).setSupportActionBar(toolbar);
         setHasOptionsMenu(true);
         imgProfile = view.findViewById(R.id.imgAccountProfile);
         txtName = view.findViewById(R.id.txtAccountName);
@@ -77,86 +81,63 @@ public class AccountFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerAccount);
         btnEditAccount = view.findViewById(R.id.btnEditAccount);
         recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new GridLayoutManager(getContext(),2));
+        recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
-
-        btnEditAccount.setOnClickListener(v->{
-
-            Intent i = new Intent (((HomeActivity)getContext()), EditUserInfoActivity.class);
+        btnEditAccount.setOnClickListener(v -> {
+            Intent i = new Intent(((HomeActivity) getContext()), EditUserInfoActivity.class);
             i.putExtra("imgUrl", imgUrl);
             startActivity(i);
-
         });
-
     }
 
     private void getData() {
-
-        arrayList = new ArrayList<Post>();
-        StringRequest request = new StringRequest(Request.Method.GET, Constant.MY_POST,res->{
-
-            try {
-                JSONObject object = new JSONObject(res);
-                if (object.getBoolean("success")){
-
-                    JSONArray posts = object.getJSONArray("posts");
-                    for (int i = 0; i < posts.length(); i++){
-
-                        JSONObject p = posts.getJSONObject(i);
-
-                        Post post = new Post();
-                        post.setPhoto(Constant.URL+"storage/posts/"+p.getString("photo"));
-                        arrayList.add(post);
-
+        apiService.getMyPosts("Bearer " + preferences.getString("token", "")).enqueue(new Callback<MyPostResponse>() {
+            @Override
+            public void onResponse(Call<MyPostResponse> call, Response<MyPostResponse> response) {
+                if (response.isSuccessful()) {
+                    MyPostResponse myPostResponse = response.body();
+                    if (myPostResponse != null && myPostResponse.isSuccess()) {
+                        List<Posts> posts = myPostResponse.getPosts();
+                        updateUI(posts, myPostResponse.getUser());
                     }
-
-                    JSONObject user = object.getJSONObject("user");
-                    txtName.setText(user.getString("name")+" "+user.getString("lastname"));
-                    txtPostsCount.setText(arrayList.size()+"");
-                    Picasso.get().load(Constant.URL+"storage/profiles/"+user.getString("photo")).into(imgProfile);
-                    adapter = new AccountPostAdapter(getContext(),arrayList);
-                    recyclerView.setAdapter(adapter);
-                    imgUrl = Constant.URL+"storage/profiles/"+user.getString("photo");
-
                 }
-            }catch (JSONException e){
-                e.printStackTrace();
             }
 
-        },error->{
-            error.printStackTrace();
-        }){
 
             @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-                String token = preferences.getString("token", "");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer "+token);
-                return map;
+            public void onFailure(Call<MyPostResponse> call, Throwable t) {
+                t.printStackTrace();
             }
-
-        };
-
-        RequestQueue queue = Volley.newRequestQueue(getContext());
-        queue.add(request);
-
+        });
     }
 
-    @Override
-    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater){
+    private void updateUI(List<Posts> posts, User user) {
+        arrayList = new ArrayList<>(posts);
+        txtName.setText(user.getName() + " " + user.getLastName());
+        txtPostsCount.setText(String.valueOf(arrayList.size()));
+        Picasso.get().load(Constant.URL + "storage/profiles/" + user.getPhoto()).into(imgProfile);
+        adapter = new AccountPostAdapter(getContext(), arrayList);
+        recyclerView.setAdapter(adapter);
+        imgUrl = Constant.URL + "storage/profiles/" + user.getPhoto();
+    }
 
-        inflater.inflate(R.id.menuAccount,menu);
+
+
+
+
+
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_account, menu);
         super.onCreateOptionsMenu(menu, inflater);
-
     }
 
+
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item){
-
-        switch (item.getItemId()){
-
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
             case R.id.item_logout: {
-
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                 builder.setMessage("Do you want to logout?");
                 builder.setPositiveButton("Logout", new DialogInterface.OnClickListener() {
@@ -165,75 +146,56 @@ public class AccountFragment extends Fragment {
                         logout();
                     }
                 });
-
                 builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int which) {
-
                     }
                 });
                 builder.show();
             }
-
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void logout(){
-
-        StringRequest request = new StringRequest(Request.Method.GET,Constant.LOGOUT,res->{
-
-            try {
-                JSONObject object = new JSONObject(res);
-                if (object.getBoolean("success")){
-
-                    SharedPreferences.Editor editor = preferences.edit();
-                    editor.clear();
-                    editor.apply();
-                    startActivity(new Intent(((HomeActivity)getContext()), AuthActivity.class));
-                    ((HomeActivity)getContext()).finish();
-
+    private void logout() {
+        apiService.logout("Bearer " + preferences.getString("token", "")).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    clearSharedPreferences();
+                    navigateToAuthActivity();
                 }
             }
 
-        },error->{
-
-        }){
-
             @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String token = preferences.getString("token", "");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer "+token);
-                return map;
-
+            public void onFailure(Call<Void> call, Throwable t) {
+                t.printStackTrace();
             }
+        });
+    }
 
-        };
+    private void clearSharedPreferences() {
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.clear();
+        editor.apply();
+    }
 
-        RequestQueue queue = Volley.newRequestQueue(getContext());
-        queue.add(request);
-
+    private void navigateToAuthActivity() {
+        startActivity(new Intent(((HomeActivity) getContext()), AuthActivity.class));
+        ((HomeActivity) getContext()).finish();
     }
 
     @Override
-    public void onHiddenChanged(boolean hidden){
-
-        if(!hidden){
+    public void onHiddenChanged(boolean hidden) {
+        if (!hidden) {
             getData();
         }
-
         super.onHiddenChanged(hidden);
-
     }
 
     @Override
-    public void onResume(){
-
+    public void onResume() {
         super.onResume();
         getData();
-
     }
-
 }

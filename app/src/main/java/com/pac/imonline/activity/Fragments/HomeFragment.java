@@ -1,7 +1,5 @@
 package com.pac.imonline.activity.Fragments;
 
-import static androidx.core.graphics.TypefaceCompatApi21Impl.init;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -14,19 +12,17 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.HomeActivity;
+import com.pac.imonline.activity.Models.Posts;
 import com.pac.imonline.activity.adapter.PostsAdapter;
 
 import org.json.JSONArray;
@@ -37,13 +33,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import Models.User;
+import com.pac.imonline.activity.Models.User;
 
 public class HomeFragment extends Fragment {
 
   private View view;
   public static RecyclerView recyclerView;
-  public static ArrayList<Post> arrayList;
+  public static ArrayList<Posts> arrayList;
   private SwipeRefreshLayout refreshLayout;
   private PostsAdapter postsAdapter;
   private MaterialToolbar toolbar;
@@ -85,7 +81,7 @@ public class HomeFragment extends Fragment {
 
       private void getPosts(){
 
-        arrayList = new ArrayList<>();
+        arrayList = new ArrayList<Posts>();
         refreshLayout.setRefreshing(true);
 
         StringRequest request = new StringRequest(Request.Method.GET, Constant.POSTS, response -> {
@@ -107,7 +103,7 @@ public class HomeFragment extends Fragment {
                         user.setUserName(userObject.getString("name")+""+userObject.getString("lastname"));
                         user.setPhoto(userObject.getString("photo"));
 
-                        Post post = new Post();
+                        Posts post = new Post();
                         post.setId(postObject.getInt("id"));
                         post.setUser(user);
                         post.setLikes(postObject.getInt("likesCount"));

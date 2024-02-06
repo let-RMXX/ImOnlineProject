@@ -2,11 +2,9 @@ package com.pac.imonline.activity.adapter;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
@@ -23,32 +21,37 @@ import com.pac.imonline.activity.CommentActivity;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.EditPostActivity;
 import com.pac.imonline.activity.HomeActivity;
+import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Api.RetrofitClient;
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collection;
 
-import Models.Posts;
+import com.pac.imonline.activity.Models.Posts;
 import de.hdodenhof.circleimageview.CircleImageView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>{
+public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder> {
 
     private Context context;
     private ArrayList<Posts> list;
     private ArrayList<Posts> listAll;
     private SharedPreferences preferences;
+    private ApiService apiService;
+    private String token;
 
     public PostsAdapter(Context context, ArrayList<Posts> list) {
         this.context = context;
         this.list = list;
         this.listAll = new ArrayList<>(list);
-
         preferences = context.getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
 
+        // Initialize Retrofit
+        apiService = RetrofitClient.createService();
+        token = preferences.getString("token", "");  // Make sure to replace with your actual token key
     }
 
     @NonNull
@@ -60,234 +63,128 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
 
     @Override
     public void onBindViewHolder(@NonNull PostsHolder holder, int position) {
+        Posts post = list.get(position);
 
-        Post post = list.get(position);
-        Picasso.get().load(Constant.URL+"storage/profiles/"+post.getUser()).getPhoto().into(holder.imgProfile));
-        Picasso.get().load(Constant.URL+"storage/posts/"+post.getPhoto()).into(holder.imgPost);
+        Picasso.get().load(Constant.URL + "storage/profiles/" + post.getUser()).into(holder.imgProfile);
+        Picasso.get().load(Constant.URL + "storage/posts/" + post.getPhoto()).into(holder.imgPost);
 
         holder.txtName.setText(post.getUser().getUserName());
-        holder.txtComments.setText("View all "+post.getComments());
-        holder.txtLikes.setText(post.getLikes()+"Likes");
+        holder.txtComments.setText("View all " + post.getComments());
+        holder.txtLikes.setText(post.getLikes() + " Likes");
         holder.txtDate.setText(post.getDate());
         holder.txtDesc.setText(post.getDesc());
 
         holder.btnLike.setImageResource(
-
-                post.isSelfLike()?R.drawable.baseline_favorite_red:R.drawable.baseline_favorite_outline
-
+                post.isSelfLike() ? R.drawable.baseline_favorite_red : R.drawable.baseline_favorite_outline
         );
 
-        //like click
-        holder.btnLike.setOnClickListener(v->{
-
+        // Like click
+        holder.btnLike.setOnClickListener(v -> {
             holder.btnLike.setImageResource(
-
-                    post.isSelfLike()?R.drawable.baseline_favorite_outline:R.drawable.baseline_favorite_red
-
+                    post.isSelfLike() ? R.drawable.baseline_favorite_outline : R.drawable.baseline_favorite_red
             );
 
-            StringRequest request = new StringRequest(Request.Method.POST,Constant.LIKE_POST, response ->{
+            int currentPosition = holder.getAdapterPosition();
 
-                Post mpost = list.get(position);
-
-                try{
-
-                    JSONObject object = new JSONObject(response);
-                    if (object.getBoolean("success")){
-
-                        mPost.setSelfLike(!post.isSelfLike());
-                        mPost.setLikes(mPost.isSelfLike()?post.getLikes()+1:post.getLikes()-1);
-                        list.set(position, mPost);
-                        notifyItemChanged(position);
+            // Use Retrofit to make the network request
+            apiService.likePost("Bearer " + token, post.getId()).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        // Update UI accordingly
+                        post.setSelfLike(!post.isSelfLike());
+                        post.setLikes(post.isSelfLike() ? post.getLikes() + 1 : post.getLikes() - 1);
+                        list.set(currentPosition, post);
+                        notifyItemChanged(currentPosition);
                         notifyDataSetChanged();
-
-                    }else {
-
+                    } else {
                         holder.btnLike.setImageResource(
-
-                                post.isSelfLike()?R.drawable.baseline_favorite_red:R.drawable.baseline_favorite_outline
-
+                                post.isSelfLike() ? R.drawable.baseline_favorite_red : R.drawable.baseline_favorite_outline
                         );
-
                     }
-
-                }catch(JSONException e){
-
-                    e.printStackTrace();
-
-                }
-
-            },err->{
-
-                err.printStackTrace();
-
-            }){
-
-                //add token
-                @Override
-                public Map<String, String> getHeaders() throws AuthFailureError{
-
-                    String token = preferences.getString("token", "");
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Authorization", "Bearer"+token);
-                    return map;
-
                 }
 
                 @Override
-                protected Map<String, String> getParams() throws AuthFailureError{
-
-                    HashMap<String, String> map = new HashMap<>();
-                    mapt.put("id", post.getId()+"");
-                    return map;
-
+                public void onFailure(Call<Void> call, Throwable t) {
+                    t.printStackTrace();
                 }
-
-            };
-
-            RequestQueue queue = Volley.newRequestQueue(context);
-            queue.add(request);
-
+            });
         });
 
-        if (post.getUser().getId()==preferences.getInt("id", 0)){
-
+        if (post.getUser().getId() == preferences.getInt("id", 0)) {
             holder.btnPostOption.setVisibility(View.VISIBLE);
-
         } else {
-
             holder.btnPostOption.setVisibility(View.GONE);
-
         }
 
         holder.btnPostOption.setOnClickListener(view -> {
-
-            PopupMenu popupMenu = new PopupMenu(context,holder.btnPostOption);
+            PopupMenu popupMenu = new PopupMenu(context, holder.btnPostOption);
             popupMenu.inflate(R.menu.menu_post_options);
-            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem menuItem) {
-
-                    switch (menuItem.getItemId()){
-
-                        case R.id.item_edit: {
-
-                            Intent i = new Intent(((HomeActivity)context), EditPostActivity.class);
-                            i.putExtra("postId", post.getId());
-                            i.putExtra("position", position);
-                            i.putExtra("text", post.getDesc());
-                            context.startActivity(i);
-                            return true;
-
-                        }
-
-                        case R.id.item_delete:{
-
-                            deletePost(post.getId(), position);
-                            return true;
-
-                        }
+            popupMenu.setOnMenuItemClickListener(menuItem -> {
+                switch (menuItem.getItemId()) {
+                    case R.id.item_edit: {
+                        Intent i = new Intent(((HomeActivity) context), EditPostActivity.class);
+                        i.putExtra("postId", post.getId());
+                        i.putExtra("position", position);
+                        i.putExtra("text", post.getDesc());
+                        context.startActivity(i);
+                        return true;
                     }
-
-                    return false;
+                    case R.id.item_delete: {
+                        deletePost(post.getId(), position);
+                        return true;
+                    }
                 }
+                return false;
             });
-
             popupMenu.show();
-
         });
 
-        holder.txtComments.setOnClickListener(v->{
-
-            Intent i = new Intent(((HomeActivity)context), CommentActivity.class);
+        holder.txtComments.setOnClickListener(v -> {
+            Intent i = new Intent(((HomeActivity) context), CommentActivity.class);
             i.putExtra("postId", post.getId());
             i.putExtra("postPosition", position);
             context.startActivity(i);
-
         });
 
-        holder.btnComment.setOnClickListener(v->{
-
-            Intent i = new Intent(((HomeActivity)context),CommentActivity.class);
+        holder.btnComment.setOnClickListener(v -> {
+            Intent i = new Intent(((HomeActivity) context), CommentActivity.class);
             i.putExtra("postId", post.getId());
             i.putExtra("postPosition", position);
             context.startActivity(i);
-
         });
-
     }
 
-    //delete post
-    private void deletePost(int postId, int position){
-
+    private void deletePost(int postId, int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("Confirm");
         builder.setMessage("Delete post?");
-        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int wich) {
-
-                StringRequest request = new StringRequest(Request.Method.POST,Constant.DELETE_POST, response ->{
-
-                    try{
-
-                        JSONObject object = new JSONObject(response);
-                        if (object.getBoolean("success")){
-
-                            list.remove(position);
-                            notifyItemRemoved(position);
-                            notifyDataSetChanged();
-                            listAll.clear();
-                            listAll.addAll(list);
-
-                        }
-
-                    }catch(JSONException e){
-
-                        e.printStackTrace();
-
+        builder.setPositiveButton("Delete", (dialog, which) -> {
+            // Use Retrofit to delete the post
+            apiService.deletePost("Bearer " + token, postId).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    if (response.isSuccessful()) {
+                        list.remove(position);
+                        notifyItemRemoved(position);
+                        notifyDataSetChanged();
+                        listAll.clear();
+                        listAll.addAll(list);
                     }
+                }
 
-                },error->{
-
-                }){
-
-                    @Override
-                    public Map<String, String> getHeaders() throws AuthFailureError{
-
-                        String token = preferences.getString("token", "");
-                        HashMap<String, String> map = new HashMap<>();
-                        map.put("Authorization", "Bearer "+token);
-                        return map;
-
-                    }
-
-                    @Override
-                    protected Map<String, String> getParams() throws AuthFailureError{
-
-                        HashMap<String, String> map = new HashMap<>();
-                        map.put("id", postId+"");
-                        return map;
-
-                    }
-
-                };
-
-                RequestQueue queue = Volley.newRequestQueue(context);
-                queue.add(request);
-
-            }
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    t.printStackTrace();
+                }
+            });
         });
 
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-
-            }
+        builder.setNegativeButton("Cancel", (dialogInterface, i) -> {
+            // Handle cancellation
         });
 
         builder.show();
-
     }
 
     @Override
@@ -295,56 +192,44 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         return list.size();
     }
 
-    Filter filter = new Filter(){
-
+    Filter filter = new Filter() {
         @Override
-        protected FilterResults performFiltering(CharSequence constraint){
-
-            ArrayList<Post> filteredList = new ArrayList<>();
-            if (constraint.toString().isEmpty()){
+        protected FilterResults performFiltering(CharSequence constraint) {
+            ArrayList<Posts> filteredList = new ArrayList<>();
+            if (constraint.toString().isEmpty()) {
                 filteredList.addAll(listAll);
             } else {
-                for (Post post : listAll){
-                    if(post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase())
-                            || post.getUser().getUserName().toLowerCase().contains(constraint.toString().toLowerCase())){
+                for (Posts post : listAll) {
+                    if (post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase()) ||
+                            post.getUser().getUserName().toLowerCase().contains(constraint.toString().toLowerCase())) {
                         filteredList.add(post);
                     }
                 }
-
             }
-
-        FilterResults results = new FilterResults();
-        results.values = filteredList;
-            return  results;
-
+            FilterResults results = new FilterResults();
+            results.values = filteredList;
+            return results;
         }
 
         @Override
-        protected void publishResults(CharSequence constraint, FilterResults results){
-
+        protected void publishResults(CharSequence constraint, FilterResults results) {
             list.clear();
-            list.addAll((Collection<? extends Post>) results.values);
+            list.addAll((Collection<? extends Posts>) results.values);
             notifyDataSetChanged();
-
         }
-
     };
 
-    public Filter getFilter(){
-
+    public Filter getFilter() {
         return filter;
-
     }
 
-    class PostsHolder extends RecyclerView.ViewHolder{
-
+    class PostsHolder extends RecyclerView.ViewHolder {
         private TextView txtName, txtDate, txtDesc, txtLikes, txtComments;
         private CircleImageView imgProfile;
         private ImageView imgPost;
-        private ImageButton btnPostOption, btnLike,btnComment;
+        private ImageButton btnPostOption, btnLike, btnComment;
 
-        public PostsHolder (@NonNull View itemView){
-
+        public PostsHolder(@NonNull View itemView) {
             super(itemView);
             txtName = itemView.findViewById(R.id.txtPostName);
             txtDate = itemView.findViewById(R.id.txtPostDate);
@@ -357,10 +242,6 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
             btnPostOption.setVisibility(View.GONE);
             btnLike = itemView.findViewById(R.id.btnPostLike);
             btnComment = itemView.findViewById(R.id.btnPostComment);
-
         }
-
-
     }
-
 }

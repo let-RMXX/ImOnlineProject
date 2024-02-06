@@ -2,12 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbarAccount"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionbarSize"
+        android:layout_height="?attr/actionBarSize"
         android:elevation="1dp"
         app:title=""
         android:theme="@style/AppTheme.BottomAppBar">
