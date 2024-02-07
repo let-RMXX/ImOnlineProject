@@ -125,6 +125,7 @@ public class UserInfoActivity extends AppCompatActivity {
         String lastName = txtLastName.getText().toString().trim();
 
         RequestBody nameBody = RequestBody.create(MediaType.parse("text/plain"), name);
+        RequestBody lastNameBody = RequestBody.create(MediaType.parse("text/plain"), lastName);
 
         MultipartBody.Part photoPart = null;
         if (bitmap != null) {
@@ -141,7 +142,7 @@ public class UserInfoActivity extends AppCompatActivity {
         user.setLastName(lastName);
         user.setPhoto(""); // Set an initial value for the photo, you may update it after the response
 
-        apiService.saveUserInfo("Bearer " + userPref.getString("token", ""), nameBody, photoPart)
+        apiService.saveUserInfo("Bearer " + userPref.getString("token", ""), nameBody, lastNameBody, photoPart)
                 .enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(Call<Void> call, Response<Void> response) {

@@ -19,6 +19,8 @@ import android.widget.Toast;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Api.RetrofitClient;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -30,11 +32,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class EditUserInfoActivity extends AppCompatActivity {
 
-    private TextInputLayout layoutName,layoutLastName;
-    private TextInputEditText txtName,txtLastName;
+    private TextInputLayout layoutName, layoutLastName;
+    private TextInputEditText txtName, txtLastName;
     private TextView txtSelectPhoto;
     private Button btnSave;
     private CircleImageView circleImageView;
@@ -42,16 +50,19 @@ public class EditUserInfoActivity extends AppCompatActivity {
     private Bitmap bitmap = null;
     private SharedPreferences userPref;
     private ProgressDialog dialog;
+    private ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_user_info);
         init();
+
+        // Initialize ApiService
+        apiService = RetrofitClient.createService();
     }
 
-    private void init(){
-
+    private void init() {
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
         userPref = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
@@ -63,116 +74,81 @@ public class EditUserInfoActivity extends AppCompatActivity {
         btnSave = findViewById(R.id.btnEditSave);
         circleImageView = findViewById(R.id.imgEditUserInfo);
 
+        // Load user data
         Picasso.get().load(getIntent().getStringExtra("imgUrl")).into(circleImageView);
         txtName.setText(userPref.getString("name", ""));
         txtLastName.setText(userPref.getString("lastname", ""));
 
-        txtSelectPhoto.setOnClickListener(v->{
+        // Click listener for selecting photo
+        txtSelectPhoto.setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_PICK);
             i.setType("image/*");
             startActivityForResult(i, GALLERY_CHANGE_PROFILE);
         });
 
-        btnSave.setOnClickListener(v->{
-
-            if(validate()){
-
+        // Click listener for save button
+        btnSave.setOnClickListener(v -> {
+            if (validate()) {
                 updateProfile();
-
             }
-
         });
-
     }
 
-    private void updateProfile(){
-
+    private void updateProfile() {
         dialog.setMessage("Updating");
         dialog.show();
-        StringRequest request = new StringRequest(Request.Method.POST,Constant.SAVE_USER_INFO,res->{
 
-            try {
-                JSONObject object = new JSONObject(res);
-                if (object.getBoolean("success")){
+        // Convert name and lastName to RequestBody
+        RequestBody nameRequestBody = RequestBody.create(MediaType.parse("text/plain"), txtName.getText().toString().trim());
+        RequestBody lastNameRequestBody = RequestBody.create(MediaType.parse("text/plain"), txtLastName.getText().toString().trim());
 
+        // Convert bitmap to MultipartBody.Part
+        MultipartBody.Part photoPart = null;
+        if (bitmap != null) {
+            RequestBody photoBody = RequestBody.create(MediaType.parse("image/*"), bitmapToString(bitmap));
+            photoPart = MultipartBody.Part.createFormData("photo", "image.jpg", photoBody);
+        }
+
+        // Make network request
+        Call<Void> call = apiService.saveUserInfo(
+                "Bearer " + userPref.getString("token", ""),
+                nameRequestBody,
+                lastNameRequestBody,
+                photoPart
+        );
+
+        // Handle response
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
                     SharedPreferences.Editor editor = userPref.edit();
                     editor.putString("name", txtName.getText().toString().trim());
                     editor.putString("lastname", txtLastName.getText().toString().trim());
                     editor.apply();
-                    Toast.makeText(this, "Profile Updated", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(EditUserInfoActivity.this, "Profile Updated", Toast.LENGTH_SHORT).show();
                     finish();
-
                 }
-            }catch (JSONException e){
-
-                e.printStackTrace();
-
-            }
-            dialog.dismiss();
-        },err->{
-            err.printStackTrace();
-            dialog.dismiss();
-        }){
-
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String token = userPref.getString("token","");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer "+token);
-                return map;
-
+                dialog.dismiss();
             }
 
             @Override
-            public Map<String, String> getParams() throws AuthFailureError{
-
-                HashMap<String, String> map = new HashMap<>();
-                map.put("name", txtName.getText().toString().trim());
-                map.put("lastname", txtLastName.getText().toString().trim());
-                map.put("photo", bitmapToString(bitmap));
-                return map;
-
+            public void onFailure(Call<Void> call, Throwable t) {
+                t.printStackTrace();
+                dialog.dismiss();
+                Toast.makeText(EditUserInfoActivity.this, "Failed to update profile", Toast.LENGTH_SHORT).show();
             }
-
-        };
-
-        RequestQueue queue = Volley.newRequestQueue(EditUserInfoActivity.this);
-        queue.add(request);
-
+        });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data){
-
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode==GALLERY_CHANGE_PROFILE && resultCode==RESULT_OK){
-
-            Uri uri = data.getData();
-
-            circleImageView.setImageURI(uri);
-
-            try {
-                bitmap = MediaStore.Images.media.getBitmap(getContentResolver(),uri);
-            }catch(IOException e){
-                e.printStackTrace();
-            }
-
-        }
-
-    }
-
-    private boolean validate(){
-
-        if(txtName.getText().toString().isEmpty()){
-
+    private boolean validate() {
+        if (txtName.getText().toString().isEmpty()) {
             layoutName.setErrorEnabled(true);
             layoutName.setError("Name is Required");
             return false;
-
         }
 
-        if (txtLastName.getText().toString().isEmpty()){
+        if (txtLastName.getText().toString().isEmpty()) {
             layoutLastName.setErrorEnabled(true);
             layoutLastName.setError("Last Name is required");
             return false;
@@ -182,17 +158,26 @@ public class EditUserInfoActivity extends AppCompatActivity {
     }
 
     private String bitmapToString(Bitmap bitmap) {
-
-        if (bitmap!=null){
-
+        if (bitmap != null) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG,100,byteArrayOutputStream);
-            byte [] array = byteArrayOutputStream.toByteArray();
-            return Base64.encodeToString(array,Base64.DEFAULT);
-
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+            byte[] array = byteArrayOutputStream.toByteArray();
+            return Base64.encodeToString(array, Base64.DEFAULT);
         }
-
         return "";
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == GALLERY_CHANGE_PROFILE && resultCode == RESULT_OK) {
+            Uri uri = data.getData();
+            circleImageView.setImageURI(uri);
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

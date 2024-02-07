@@ -131,6 +131,9 @@ public class RegisterFragment extends Fragment {
                             Toast.makeText(requireContext(), "Remote Registration Failed. Please try again.", Toast.LENGTH_SHORT).show();
                         }
                     });
+
+                    // Register user locally even if remote registration fails
+                    registerUserLocally(userEntity);
                 }
             }
 
@@ -143,6 +146,9 @@ public class RegisterFragment extends Fragment {
                         Toast.makeText(requireContext(), "Network Error. Please check your connection.", Toast.LENGTH_SHORT).show();
                     }
                 });
+
+                // Register user locally even if network error occurs
+                registerUserLocally(userEntity);
             }
         });
     }
