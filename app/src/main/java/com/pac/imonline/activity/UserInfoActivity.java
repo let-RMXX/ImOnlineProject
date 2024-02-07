@@ -14,13 +14,19 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Api.ApiService;
 import com.pac.imonline.activity.Api.RetrofitClient;
-import com.pac.imonline.activity.Models.User;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.Entities.UserEntity;
+import com.pac.imonline.activity.Fragments.WalkthroughPagesAnimFragment;
+import com.pac.imonline.R;
+import androidx.fragment.app.Fragment;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,6 +35,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import okhttp3.MediaType;
@@ -51,6 +59,8 @@ public class UserInfoActivity extends AppCompatActivity {
     private SharedPreferences userPref;
     private ProgressDialog dialog;
     private ApiService apiService;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private AppDatabase appDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +74,7 @@ public class UserInfoActivity extends AppCompatActivity {
         dialog.setCancelable(false);
         userPref = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         apiService = RetrofitClient.createService();
+        appDatabase = AppDatabase.getAppDatabase(this);
 
         layoutLastName = findViewById(R.id.txtLayoutLastNameUserInfo);
         layoutName = findViewById(R.id.txtLayoutNameUserInfo);
@@ -137,34 +148,31 @@ public class UserInfoActivity extends AppCompatActivity {
             photoPart = MultipartBody.Part.createFormData("photo", "photo.jpg", photoBody);
         }
 
-        User user = new User(); // Create a User object
+        UserEntity user = new UserEntity();
         user.setName(name);
         user.setLastName(lastName);
-        user.setPhoto(""); // Set an initial value for the photo, you may update it after the response
+        user.setEmail("");
+        user.setPassword("");
 
-        apiService.saveUserInfo("Bearer " + userPref.getString("token", ""), nameBody, lastNameBody, photoPart)
-                .enqueue(new Callback<Void>() {
-                    @Override
-                    public void onResponse(Call<Void> call, Response<Void> response) {
-                        if (response.isSuccessful()) {
-                            // Update user object with the actual photo from the response
-                            user.setPhoto(response.headers().get("photo"));
+        // Save user info to Room database
+        saveUserToRoomDatabase(user);
+    }
 
-                            SharedPreferences.Editor editor = userPref.edit();
-                            editor.putString("photo", user.getPhoto());
-                            editor.apply();
+    private void saveUserToRoomDatabase(UserEntity userEntity) {
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                appDatabase.userDao().registerUser(userEntity);
 
-                            startActivity(new Intent(UserInfoActivity.this, HomeActivity.class));
-                            finish();
-                        }
-                        dialog.dismiss();
-                    }
+                // Create a new instance of WalkthroughPagesAnimFragment
+                WalkthroughPagesAnimFragment walkthroughAnimFragment = new WalkthroughPagesAnimFragment();
 
-                    @Override
-                    public void onFailure(Call<Void> call, Throwable t) {
-                        t.printStackTrace();
-                        dialog.dismiss();
-                    }
-                });
+                // Use getSupportFragmentManager() if you are using AppCompatActivity
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, walkthroughAnimFragment)
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
     }
 }

@@ -63,8 +63,8 @@ public class HomeFragment extends Fragment {
         toolbar = view.findViewById(R.id.toolbarHome);
 
         // Dynamically check and set toolbar if the parent activity is HomeActivity
-        if (getContext() instanceof HomeActivity) {
-            ((HomeActivity) getContext()).setSupportActionBar(toolbar);
+        if (getActivity() instanceof HomeActivity) {
+            ((HomeActivity) getActivity()).setSupportActionBar(toolbar);
         }
 
         setHasOptionsMenu(true);

@@ -1,5 +1,6 @@
 package com.pac.imonline.activity.Fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,21 +13,21 @@ import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Api.UserService;
 import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Database.UserDao;
 import com.pac.imonline.activity.Entities.UserEntity;
+import com.pac.imonline.activity.UserInfoActivity;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import com.pac.imonline.activity.Api.UserService;
 
 public class RegisterFragment extends Fragment {
 
@@ -163,6 +164,10 @@ public class RegisterFragment extends Fragment {
                     @Override
                     public void run() {
                         Toast.makeText(requireContext(), "User Successfully Registered Locally!", Toast.LENGTH_SHORT).show();
+                        // Start UserInfoActivity
+                        Intent intent = new Intent(getActivity(), UserInfoActivity.class);
+                        startActivity(intent);
+                        getActivity().finish(); // Finish current activity
                     }
                 });
             }
