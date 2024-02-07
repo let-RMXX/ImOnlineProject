@@ -13,6 +13,9 @@ public class UserEntity {
     @ColumnInfo(name = "name")
     String name;
 
+    @ColumnInfo(name = "lastName")
+    String lastName;
+
     @ColumnInfo(name = "email")
     String email;
 
@@ -49,5 +52,13 @@ public class UserEntity {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 }

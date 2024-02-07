@@ -11,7 +11,7 @@ import com.pac.imonline.activity.Community;
 import com.pac.imonline.activity.CommunityDao;
 import com.pac.imonline.activity.Entities.UserEntity;
 
-@Database(entities = {Community.class, UserEntity.class}, version = 2, exportSchema = false)
+@Database(entities = {Community.class, UserEntity.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String dbName = "imonlinedb";

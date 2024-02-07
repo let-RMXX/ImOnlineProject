@@ -20,169 +20,104 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Constant;
+import com.pac.imonline.activity.Api.ApiService;
 import com.pac.imonline.activity.HomeActivity;
 import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.adapter.PostsAdapter;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-import com.pac.imonline.activity.Models.User;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class HomeFragment extends Fragment {
 
-  private View view;
-  public static RecyclerView recyclerView;
-  public static ArrayList<Posts> arrayList;
-  private SwipeRefreshLayout refreshLayout;
-  private PostsAdapter postsAdapter;
-  private MaterialToolbar toolbar;
-  private SharedPreferences sharedPreferences;
+    private View view;
+    public static RecyclerView recyclerView;
+    public static ArrayList<Posts> arrayList;
+    private SwipeRefreshLayout refreshLayout;
+    private PostsAdapter postsAdapter;
+    private MaterialToolbar toolbar;
+    private SharedPreferences sharedPreferences;
+    private ApiService apiService;
 
-  public HomeFragment(){}
+    public HomeFragment() {}
 
-      @NonNull
-      @Override
-      public View onCreateView(@Nullable LayoutInflater inflater,@Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
-
+    @NonNull
+    @Override
+    public View onCreateView(@Nullable LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.layout_home, container, false);
         init();
         return view;
+    }
 
-      }
-
-      private void init(){
-
+    private void init() {
         sharedPreferences = getContext().getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         recyclerView = view.findViewById(R.id.recyclerHome);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         refreshLayout = view.findViewById(R.id.swipeHome);
         toolbar = view.findViewById(R.id.toolbarHome);
-        ((HomeActivity)getContext()).setSupportActionBar(toolbar);
+
+        // Dynamically check and set toolbar if the parent activity is HomeActivity
+        if (getActivity() instanceof HomeActivity) {
+            ((HomeActivity) getActivity()).setSupportActionBar(toolbar);
+        }
+
         setHasOptionsMenu(true);
+        apiService = RetrofitClient.createService();
+        getPosts();
 
-          getPosts();
+        refreshLayout.setOnRefreshListener(() -> getPosts());
+    }
 
-          refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-              @Override
-              public void onRefresh() {
-                  getPosts();
-              }
-          });
-
-      }
-
-      private void getPosts(){
-
-        arrayList = new ArrayList<Posts>();
+    private void getPosts() {
+        arrayList = new ArrayList<>();
         refreshLayout.setRefreshing(true);
 
-        StringRequest request = new StringRequest(Request.Method.GET, Constant.POSTS, response -> {
-
-            try {
-
-                JSONObject object = new JSONObject(response);
-
-                if(object.getBoolean("success")){
-
-                    JSONArray array = new JSONArray(object.getString("posts"));
-                    for (int i = 0; i < array.length(); i++){
-
-                        JSONObject postObject = array.getJSONObject(i);
-                        JSONObject userObject = postObject.getJSONObject("user");
-
-                        User user = new User();
-                        user.setId(userObject.getInt("id"));
-                        user.setUserName(userObject.getString("name")+""+userObject.getString("lastname"));
-                        user.setPhoto(userObject.getString("photo"));
-
-                        Posts post = new Post();
-                        post.setId(postObject.getInt("id"));
-                        post.setUser(user);
-                        post.setLikes(postObject.getInt("likesCount"));
-                        post.setComments(postObject.getInt("commentsCount"));
-                        post.setDate(postObject.getString("created_at"));
-                        post.setDesc(postObject.getString("desc"));
-                        post.setPhoto(postObject.getString("photo"));
-                        post.setSelfLike(postObject.getBoolean("selfLike"));
-
-                        arrayList.add(post);
-
-                    }
-
+        Call<List<Posts>> call = apiService.getPosts("Bearer " + sharedPreferences.getString("token", ""));
+        call.enqueue(new Callback<List<Posts>>() {
+            @Override
+            public void onResponse(Call<List<Posts>> call, Response<List<Posts>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    arrayList.addAll(response.body());
                     postsAdapter = new PostsAdapter(getContext(), arrayList);
                     recyclerView.setAdapter(postsAdapter);
-
                 }
-
-            }catch(JSONException e){
-
-                e.printStackTrace();
-
+                refreshLayout.setRefreshing(false);
             }
 
-            refreshLayout.setRefreshing(false);
-
-        },error -> {
-
-            error.printStackTrace();
-            refreshLayout.setRefreshing(false);
-
-        }){
-
-            //provide token in header
             @Override
-            public Map<String, String> getHeaders() throws AuthFailureError{
-
-                String token = sharedPreferences.getString("token", "");
-                HashMap<String, String> map = new HashMap<>();
-                map.put("Authorization", "Bearer" + token);
-                return map;
-
+            public void onFailure(Call<List<Posts>> call, Throwable t) {
+                t.printStackTrace();
+                refreshLayout.setRefreshing(false);
             }
+        });
+    }
 
-        };
-
-        RequestQueue queue = Volley.newRequestQueue(getContext());
-        queue.add(request);
-
-      }
-
-      @Override
-      public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater){
-
-        inflater.inflate(R.menu.menu_search,menu);
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_search, menu);
         MenuItem item = menu.findItem(R.id.search);
         SearchView searchView = (SearchView) item.getActionView();
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener(){
-
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
-            public boolean onQueryTextSubmit(String query){
-
+            public boolean onQueryTextSubmit(String query) {
                 return false;
-
             }
 
             @Override
-            public boolean onQueryTextChange(String newText){
-
-                postsAdapter.getFilter().filter(newText);
-
+            public boolean onQueryTextChange(String newText) {
+                if (postsAdapter != null) {
+                    postsAdapter.getFilter().filter(newText);
+                }
                 return false;
-
             }
-
         });
 
         super.onCreateOptionsMenu(menu, inflater);
-
     }
-
 }

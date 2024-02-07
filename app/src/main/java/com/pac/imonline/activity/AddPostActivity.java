@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Api.ApiService;
 import com.pac.imonline.activity.Api.RetrofitClient;
+import com.pac.imonline.activity.Models.User;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,6 +33,7 @@ import retrofit2.Response;
 public class AddPostActivity extends AppCompatActivity {
 
     private ApiService apiService;
+    private SharedPreferences sharedPreferences;
 
     private Button btnPost;
     private ImageView imgPost;
@@ -39,7 +41,6 @@ public class AddPostActivity extends AppCompatActivity {
     private Bitmap bitmap = null;
     private static final int GALLERY_CHANGE_POST = 3;
     private ProgressDialog dialog;
-    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,13 +49,13 @@ public class AddPostActivity extends AppCompatActivity {
         init();
 
         apiService = RetrofitClient.createService();
+        sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
     }
 
     private void init() {
         dialog = new ProgressDialog(this);
         dialog.setCancelable(false);
 
-        sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         btnPost = findViewById(R.id.btnAddPost);
         imgPost = findViewById(R.id.imgAddPost);
         txtDesc = findViewById(R.id.txtDescAddPost);
@@ -80,7 +81,6 @@ public class AddPostActivity extends AppCompatActivity {
         dialog.setMessage("Posting");
         dialog.show();
 
-        // Assuming you have a method like this in ApiService
         Call<Void> call = apiService.addPost("Bearer " + sharedPreferences.getString("token", ""),
                 txtDesc.getText().toString().trim(), bitmapToString(bitmap));
 
@@ -88,6 +88,7 @@ public class AddPostActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
+                    User user = getCurrentUser();
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putString("photo", user.getPhoto());
                     editor.apply();
@@ -97,7 +98,6 @@ public class AddPostActivity extends AppCompatActivity {
                 dialog.dismiss();
             }
 
-
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
                 t.printStackTrace();
@@ -105,6 +105,16 @@ public class AddPostActivity extends AppCompatActivity {
             }
         });
     }
+
+    private User getCurrentUser() {
+        User currentUser = new User();
+        // Retrieve user information from SharedPreferences
+        currentUser.setId(sharedPreferences.getInt("userId", 0));
+        currentUser.setUserName(sharedPreferences.getString("userName", ""));
+        currentUser.setPhoto(sharedPreferences.getString("userPhoto", ""));
+        return currentUser;
+    }
+
 
     private String bitmapToString(Bitmap bitmap) {
         if (bitmap != null) {

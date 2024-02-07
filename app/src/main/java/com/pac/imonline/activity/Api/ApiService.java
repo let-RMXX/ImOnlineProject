@@ -6,6 +6,8 @@ import com.pac.imonline.activity.Models.MyPostResponse;
 import java.util.List;
 
 import com.pac.imonline.activity.Models.Comment;
+import com.pac.imonline.activity.Models.Posts;
+
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import retrofit2.Call;
@@ -25,6 +27,7 @@ public interface ApiService {
     Call<Void> saveUserInfo(
             @Header("Authorization") String authorization,
             @Part("name") RequestBody name,
+            @Part("lastname") RequestBody lastName,
             @Part MultipartBody.Part photo
     );
 
@@ -70,7 +73,7 @@ public interface ApiService {
     @GET(Constant.MY_POST)
     Call<MyPostResponse> getMyPosts(@Header("Authorization") String authorization);
 
-    @POST("logout")
+    @POST(Constant.LOGOUT)
     Call<Void> logout(@Header("Authorization") String authorization);
 
     @Multipart
@@ -80,4 +83,8 @@ public interface ApiService {
             @Part("desc") String description,
             @Part String photo
     );
+
+    @GET(Constant.POSTS)
+    Call<List<Posts>> getPosts(
+            @Header("Authorization") String authorization);
 }

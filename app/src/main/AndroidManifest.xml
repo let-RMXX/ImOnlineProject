@@ -16,6 +16,7 @@
         android:theme="@style/Theme.ImOnline"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
         <service
             android:name=".activity.Api.RetrofitClient"
             android:enabled="true"
@@ -49,12 +50,6 @@
             android:exported="false" />
         <activity
             android:name=".activity.UserInfoActivity"
-            android:exported="false" />
-        <activity
-            android:name=".activity.Fragments.UserInfoFragment"
-            android:exported="false" />
-        <activity
-            android:name=".activity.OnBoardActivity"
             android:exported="false" />
         <activity
             android:name=".activity.MainActivity"
