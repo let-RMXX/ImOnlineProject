@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.Update;
+
 import com.pac.imonline.activity.Entities.PostEntity;
 
 import java.util.List;
@@ -16,5 +18,8 @@ public interface PostDao {
 
     @Query("SELECT * FROM posts")
     LiveData<List<PostEntity>> getAllPosts();
+
+    @Update
+    void update(PostEntity postEntity);
 
 }

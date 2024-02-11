@@ -13,8 +13,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.pac.imonline.R;
+import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.adapter.CommentsAdapter;
+import com.pac.imonline.activity.Models.Comment;
 
 import java.util.ArrayList;
 import java.util.List;

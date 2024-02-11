@@ -1,5 +1,6 @@
 package com.pac.imonline.activity;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -9,7 +10,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,22 +20,16 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Api.ApiService;
-import com.pac.imonline.activity.Api.RetrofitClient;
-import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.Database.AppDatabase;
-import com.pac.imonline.activity.Models.User;
+import com.pac.imonline.activity.Entities.PostEntity;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import retrofit2.Call;
-
 public class AddPostActivity extends AppCompatActivity {
 
-    private ApiService apiService;
-    private SharedPreferences sharedPreferences;
     private AppDatabase appDatabase;
+    private SharedPreferences sharedPreferences;
 
     private Button btnPost;
     private ImageView imgPost;
@@ -50,7 +44,6 @@ public class AddPostActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_post);
         init();
 
-        apiService = RetrofitClient.createService();
         sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
         appDatabase = AppDatabase.getAppDatabase(this);
     }
@@ -62,7 +55,6 @@ public class AddPostActivity extends AppCompatActivity {
         btnPost = findViewById(R.id.btnAddPost);
         imgPost = findViewById(R.id.imgAddPost);
         txtDesc = findViewById(R.id.txtDescAddPost);
-        dialog.setCancelable(false);
 
         imgPost.setImageURI(getIntent().getData());
         try {
@@ -80,6 +72,7 @@ public class AddPostActivity extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("StaticFieldLeak")
     private void post() {
         dialog.setMessage("Posting");
         dialog.show();
@@ -99,26 +92,12 @@ public class AddPostActivity extends AppCompatActivity {
             @Override
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
-                // Continue with your Retrofit call if needed
-                Call<Void> call = apiService.addPost("Bearer " + sharedPreferences.getString("token", ""),
-                        txtDesc.getText().toString().trim(), bitmapToString(bitmap));
-
                 // After posting, navigate to HomeActivity
                 startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
                 finish();
                 dialog.dismiss();
             }
         }.execute();
-    }
-
-    private String bitmapToString(Bitmap bitmap) {
-        if (bitmap != null) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
-            byte[] array = byteArrayOutputStream.toByteArray();
-            return Base64.encodeToString(array, Base64.DEFAULT);
-        }
-        return "";
     }
 
     public void cancelPost(View view) {

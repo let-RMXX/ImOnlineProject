@@ -1,6 +1,5 @@
 package com.pac.imonline.activity.Fragments;
 
-import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -13,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -37,8 +37,6 @@ public class HomeFragment extends Fragment {
     private MaterialToolbar toolbar;
     private AppDatabase appDatabase;
     private List<PostEntity> postEntities;
-
-    public HomeFragment() {}
 
     @NonNull
     @Override
@@ -70,17 +68,27 @@ public class HomeFragment extends Fragment {
     private void getPostsFromDatabase() {
         refreshLayout.setRefreshing(true);
 
-        // Fetch posts from Room database
-        postEntities = appDatabase.postDao().getAllPosts();
+        // Observe changes in postEntities
+        appDatabase.postDao().getAllPosts().observe(getViewLifecycleOwner(), new Observer<List<PostEntity>>() {
+            @Override
+            public void onChanged(List<PostEntity> entities) {
+                // Update the UI with the new data
+                postEntities = entities;
 
-        // Convert PostEntity objects to Posts objects
-        ArrayList<Posts> postsList = convertToPostsList(postEntities);
+                // Convert PostEntity objects to Posts objects
+                ArrayList<Posts> postsList = convertToPostsList(postEntities);
 
-        // Update RecyclerView with fetched posts
-        postsAdapter = new PostsAdapter(getContext(), postsList);
-        recyclerView.setAdapter(postsAdapter);
+                // Update RecyclerView with fetched posts
+                if (postsAdapter == null) {
+                    postsAdapter = new PostsAdapter(getContext(), postsList);
+                    recyclerView.setAdapter(postsAdapter);
+                } else {
+                    postsAdapter.updateList(postsList);
+                }
 
-        refreshLayout.setRefreshing(false);
+                refreshLayout.setRefreshing(false);
+            }
+        });
     }
 
     private ArrayList<Posts> convertToPostsList(List<PostEntity> postEntities) {
@@ -89,7 +97,6 @@ public class HomeFragment extends Fragment {
             Posts post = new Posts();
             post.setId(entity.getId());
             post.setDescription(entity.getDescription());
-            // Add other necessary fields as needed
             postsList.add(post);
         }
         return postsList;
