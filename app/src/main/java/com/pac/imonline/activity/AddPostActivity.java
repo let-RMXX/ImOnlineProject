@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
@@ -21,19 +22,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.pac.imonline.R;
 import com.pac.imonline.activity.Api.ApiService;
 import com.pac.imonline.activity.Api.RetrofitClient;
+import com.pac.imonline.activity.Entities.PostEntity;
+import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Models.User;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class AddPostActivity extends AppCompatActivity {
 
     private ApiService apiService;
     private SharedPreferences sharedPreferences;
+    private AppDatabase appDatabase;
 
     private Button btnPost;
     private ImageView imgPost;
@@ -50,6 +52,7 @@ public class AddPostActivity extends AppCompatActivity {
 
         apiService = RetrofitClient.createService();
         sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        appDatabase = AppDatabase.getAppDatabase(this);
     }
 
     private void init() {
@@ -81,40 +84,32 @@ public class AddPostActivity extends AppCompatActivity {
         dialog.setMessage("Posting");
         dialog.show();
 
-        Call<Void> call = apiService.addPost("Bearer " + sharedPreferences.getString("token", ""),
-                txtDesc.getText().toString().trim(), bitmapToString(bitmap));
-
-        call.enqueue(new Callback<Void>() {
+        // Save post to Room Database asynchronously using AsyncTask
+        new AsyncTask<Void, Void, Void>() {
             @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    User user = getCurrentUser();
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putString("photo", user.getPhoto());
-                    editor.apply();
-                    startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
-                    finish();
-                }
-                dialog.dismiss();
+            protected Void doInBackground(Void... voids) {
+                // Insert post into Room Database
+                PostEntity postEntity = new PostEntity();
+                postEntity.setDescription(txtDesc.getText().toString().trim());
+                postEntity.setImageUri("");
+                appDatabase.postDao().insert(postEntity);
+                return null;
             }
 
             @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                t.printStackTrace();
+            protected void onPostExecute(Void aVoid) {
+                super.onPostExecute(aVoid);
+                // Continue with your Retrofit call if needed
+                Call<Void> call = apiService.addPost("Bearer " + sharedPreferences.getString("token", ""),
+                        txtDesc.getText().toString().trim(), bitmapToString(bitmap));
+
+                // After posting, navigate to HomeActivity
+                startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
+                finish();
                 dialog.dismiss();
             }
-        });
+        }.execute();
     }
-
-    private User getCurrentUser() {
-        User currentUser = new User();
-        // Retrieve user information from SharedPreferences
-        currentUser.setId(sharedPreferences.getInt("userId", 0));
-        currentUser.setUserName(sharedPreferences.getString("userName", ""));
-        currentUser.setPhoto(sharedPreferences.getString("userPhoto", ""));
-        return currentUser;
-    }
-
 
     private String bitmapToString(Bitmap bitmap) {
         if (bitmap != null) {

@@ -70,4 +70,7 @@ public class Posts {
     public void setSelfLike(boolean selfLike) {
         this.selfLike = selfLike;
     }
+
+    public void setDescription(String description) {
+    }
 }
