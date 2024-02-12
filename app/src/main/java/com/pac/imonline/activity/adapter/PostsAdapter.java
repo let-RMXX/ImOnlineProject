@@ -4,10 +4,12 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
@@ -18,29 +20,22 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.pac.imonline.R;
 import com.pac.imonline.activity.CommentActivity;
-import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.EditPostActivity;
-import com.pac.imonline.activity.HomeActivity;
-import com.pac.imonline.activity.Api.ApiService;
-import com.pac.imonline.activity.Api.RetrofitClient;
-import com.squareup.picasso.Picasso;
+import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.activity.Entities.PostEntity;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-import com.pac.imonline.activity.Models.Posts;
 import de.hdodenhof.circleimageview.CircleImageView;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
-public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder> {
+public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder> implements Filterable {
 
     private Context context;
     private ArrayList<Posts> list;
     private ArrayList<Posts> listAll;
     private SharedPreferences preferences;
-    private ApiService apiService;
     private String token;
 
     public PostsAdapter(Context context, ArrayList<Posts> list) {
@@ -48,16 +43,13 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         this.list = list;
         this.listAll = new ArrayList<>(list);
         preferences = context.getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
-
-        // Initialize Retrofit
-        apiService = RetrofitClient.createService();
-        token = preferences.getString("token", "");  // Make sure to replace with your actual token key
+        token = preferences.getString("token", "");
     }
 
     @NonNull
     @Override
     public PostsHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_home, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_post, parent, false);
         return new PostsHolder(view);
     }
 
@@ -65,126 +57,51 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
     public void onBindViewHolder(@NonNull PostsHolder holder, int position) {
         Posts post = list.get(position);
 
-        Picasso.get().load(Constant.URL + "storage/profiles/" + post.getUser()).into(holder.imgProfile);
-        Picasso.get().load(Constant.URL + "storage/posts/" + post.getPhoto()).into(holder.imgPost);
+        byte[] profileImageData = getProfileImageData(post);
 
-        holder.txtName.setText(post.getUser().getUserName());
-        holder.txtComments.setText("View all " + post.getComments());
-        holder.txtLikes.setText(post.getLikes() + " Likes");
-        holder.txtDate.setText(post.getDate());
-        holder.txtDesc.setText(post.getDesc());
-
-        holder.btnLike.setImageResource(
-                post.isSelfLike() ? R.drawable.baseline_favorite_red : R.drawable.baseline_favorite_outline
-        );
-
-        // Like click
-        holder.btnLike.setOnClickListener(v -> {
-            holder.btnLike.setImageResource(
-                    post.isSelfLike() ? R.drawable.baseline_favorite_outline : R.drawable.baseline_favorite_red
-            );
-
-            int currentPosition = holder.getAdapterPosition();
-
-            // Use Retrofit to make the network request
-            apiService.likePost("Bearer " + token, post.getId()).enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(Call<Void> call, Response<Void> response) {
-                    if (response.isSuccessful()) {
-                        // Update UI accordingly
-                        post.setSelfLike(!post.isSelfLike());
-                        post.setLikes(post.isSelfLike() ? post.getLikes() + 1 : post.getLikes() - 1);
-                        list.set(currentPosition, post);
-                        notifyItemChanged(currentPosition);
-                        notifyDataSetChanged();
-                    } else {
-                        holder.btnLike.setImageResource(
-                                post.isSelfLike() ? R.drawable.baseline_favorite_red : R.drawable.baseline_favorite_outline
-                        );
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<Void> call, Throwable t) {
-                    t.printStackTrace();
-                }
-            });
-        });
-
-        if (post.getUser().getId() == preferences.getInt("id", 0)) {
-            holder.btnPostOption.setVisibility(View.VISIBLE);
+        if (profileImageData != null) {
+            holder.imgProfile.setImageBitmap(BitmapFactory.decodeByteArray(profileImageData, 0, profileImageData.length));
         } else {
-            holder.btnPostOption.setVisibility(View.GONE);
+            holder.imgProfile.setImageResource(R.drawable.default_profile_image);
         }
 
-        holder.btnPostOption.setOnClickListener(view -> {
+        holder.txtDesc.setText(post.getDesc());
+        // Set other views accordingly
+
+        // Set onClickListener for the comment button
+        holder.btnComment.setOnClickListener(v -> {
+            Intent commentIntent = new Intent(context, CommentActivity.class);
+            context.startActivity(commentIntent);
+        });
+
+        // Set onClickListener for the options button
+        holder.btnPostOption.setOnClickListener(v -> {
             PopupMenu popupMenu = new PopupMenu(context, holder.btnPostOption);
             popupMenu.inflate(R.menu.menu_post_options);
-            popupMenu.setOnMenuItemClickListener(menuItem -> {
-                switch (menuItem.getItemId()) {
-                    case R.id.item_edit: {
-                        Intent i = new Intent(((HomeActivity) context), EditPostActivity.class);
-                        i.putExtra("postId", post.getId());
-                        i.putExtra("position", position);
-                        i.putExtra("text", post.getDesc());
-                        context.startActivity(i);
+            popupMenu.setOnMenuItemClickListener(item -> {
+                switch (item.getItemId()) {
+                    case R.id.item_edit:
+                        Intent editIntent = new Intent(context, EditPostActivity.class);
+                        context.startActivity(editIntent);
                         return true;
-                    }
-                    case R.id.item_delete: {
+                    case R.id.item_delete:
                         deletePost(post.getId(), position);
                         return true;
-                    }
+                    default:
+                        return false;
                 }
-                return false;
             });
             popupMenu.show();
         });
+    }
 
-        holder.txtComments.setOnClickListener(v -> {
-            Intent i = new Intent(((HomeActivity) context), CommentActivity.class);
-            i.putExtra("postId", post.getId());
-            i.putExtra("postPosition", position);
-            context.startActivity(i);
-        });
-
-        holder.btnComment.setOnClickListener(v -> {
-            Intent i = new Intent(((HomeActivity) context), CommentActivity.class);
-            i.putExtra("postId", post.getId());
-            i.putExtra("postPosition", position);
-            context.startActivity(i);
-        });
+    private byte[] getProfileImageData(Posts post) {
+        // Implement this method to retrieve profile image data
+        return null;
     }
 
     private void deletePost(int postId, int position) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Confirm");
-        builder.setMessage("Delete post?");
-        builder.setPositiveButton("Delete", (dialog, which) -> {
-            // Use Retrofit to delete the post
-            apiService.deletePost("Bearer " + token, postId).enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(Call<Void> call, Response<Void> response) {
-                    if (response.isSuccessful()) {
-                        list.remove(position);
-                        notifyItemRemoved(position);
-                        notifyDataSetChanged();
-                        listAll.clear();
-                        listAll.addAll(list);
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<Void> call, Throwable t) {
-                    t.printStackTrace();
-                }
-            });
-        });
-
-        builder.setNegativeButton("Cancel", (dialogInterface, i) -> {
-            // Handle cancellation
-        });
-
-        builder.show();
+        // Implement deletion logic here
     }
 
     @Override
@@ -192,7 +109,12 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         return list.size();
     }
 
-    Filter filter = new Filter() {
+    @Override
+    public Filter getFilter() {
+        return filter;
+    }
+
+    private Filter filter = new Filter() {
         @Override
         protected FilterResults performFiltering(CharSequence constraint) {
             ArrayList<Posts> filteredList = new ArrayList<>();
@@ -200,8 +122,7 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
                 filteredList.addAll(listAll);
             } else {
                 for (Posts post : listAll) {
-                    if (post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase()) ||
-                            post.getUser().getUserName().toLowerCase().contains(constraint.toString().toLowerCase())) {
+                    if (post.getDesc().toLowerCase().contains(constraint.toString().toLowerCase())) {
                         filteredList.add(post);
                     }
                 }
@@ -219,28 +140,26 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         }
     };
 
-    public Filter getFilter() {
-        return filter;
+    public void updateList(ArrayList<Posts> newPostsList) {
+        list.clear();
+        list.addAll(newPostsList);
+        listAll.clear();
+        listAll.addAll(newPostsList);
+        notifyDataSetChanged();
     }
 
-    class PostsHolder extends RecyclerView.ViewHolder {
-        private TextView txtName, txtDate, txtDesc, txtLikes, txtComments;
+    static class PostsHolder extends RecyclerView.ViewHolder {
+        private TextView txtDesc;
         private CircleImageView imgProfile;
         private ImageView imgPost;
-        private ImageButton btnPostOption, btnLike, btnComment;
+        private ImageButton btnPostOption, btnComment;
 
         public PostsHolder(@NonNull View itemView) {
             super(itemView);
-            txtName = itemView.findViewById(R.id.txtPostName);
-            txtDate = itemView.findViewById(R.id.txtPostDate);
             txtDesc = itemView.findViewById(R.id.txtPostDesc);
-            txtLikes = itemView.findViewById(R.id.txtPostLikes);
-            txtComments = itemView.findViewById(R.id.txtPostComments);
             imgProfile = itemView.findViewById(R.id.imgPostProfile);
             imgPost = itemView.findViewById(R.id.imgPostPhoto);
             btnPostOption = itemView.findViewById(R.id.btnPostOption);
-            btnPostOption.setVisibility(View.GONE);
-            btnLike = itemView.findViewById(R.id.btnPostLike);
             btnComment = itemView.findViewById(R.id.btnPostComment);
         }
     }

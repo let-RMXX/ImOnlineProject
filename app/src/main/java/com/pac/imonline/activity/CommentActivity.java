@@ -8,23 +8,18 @@ import android.view.View;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Fragments.HomeFragment;
-import com.pac.imonline.activity.Models.Posts;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.adapter.CommentsAdapter;
-import com.pac.imonline.activity.Api.ApiService;
-import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.Models.Comment;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class CommentActivity extends AppCompatActivity {
 
@@ -36,13 +31,14 @@ public class CommentActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     private EditText txtAddComment;
     private ProgressDialog dialog;
-    private ApiService apiService;
+    private AppDatabase appDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_comment);
         init();
+        getPostsFromDatabase();
     }
 
     private void init() {
@@ -54,64 +50,37 @@ public class CommentActivity extends AppCompatActivity {
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         postId = getIntent().getIntExtra("postId", 0);
-        apiService = RetrofitClient.createService();
-        getComments();
+        appDatabase = AppDatabase.getAppDatabase(this);
     }
 
-    private void getComments() {
-        list = new ArrayList<>();
-        apiService.getComments("Bearer " + preferences.getString("token", ""), postId)
-                .enqueue(new Callback<List<Comment>>() {
-                    @Override
-                    public void onResponse(Call<List<Comment>> call, Response<List<Comment>> response) {
-                        if (response.isSuccessful()) {
-                            list.addAll(response.body());
-                            adapter = new CommentsAdapter(CommentActivity.this, list);
-                            recyclerView.setAdapter(adapter);
+    private void getPostsFromDatabase() {
+        appDatabase.postDao().getAllPosts().observe(this, new Observer<List<PostEntity>>() {
+            @Override
+            public void onChanged(List<PostEntity> posts) {
+                // Update UI or perform actions with the posts data
+                // For now, we just log the posts size
+                if (posts != null) {
+                    // Adjust this to your requirement
+                    for (PostEntity post : posts) {
+                        if (post.getId() == postId) {
+                            // Found the post, now update UI or perform actions
+                            // For example, you can get comments for this post from API
+                            // getComments();
+                            break;
                         }
                     }
-
-                    @Override
-                    public void onFailure(Call<List<Comment>> call, Throwable t) {
-                        t.printStackTrace();
-                    }
-                });
+                }
+            }
+        });
     }
+
+    // Method to fetch comments from API (if needed)
 
     public void goBack(View view) {
         super.onBackPressed();
     }
 
     public void addComment(View view) {
-        String commentText = txtAddComment.getText().toString();
-        dialog.setMessage("Adding Comment");
-        dialog.show();
-        if (commentText.length() > 0) {
-            apiService.addComment("Bearer " + preferences.getString("token", ""), postId, commentText)
-                    .enqueue(new Callback<Comment>() {
-                        @Override
-                        public void onResponse(Call<Comment> call, Response<Comment> response) {
-                            if (response.isSuccessful()) {
-                                Comment newComment = response.body();
-                                list.add(newComment);
-                                adapter.notifyDataSetChanged();
-                                txtAddComment.setText("");
-
-                                // Update post comments count
-                                Posts posts = HomeFragment.arrayList.get(postPosition);
-                                posts.setComments(posts.getComments() + 1);
-                                HomeFragment.arrayList.set(postPosition, posts);
-                                HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                            }
-                            dialog.dismiss();
-                        }
-
-                        @Override
-                        public void onFailure(Call<Comment> call, Throwable t) {
-                            t.printStackTrace();
-                            dialog.dismiss();
-                        }
-                    });
-        }
+        // Method to add a new comment
     }
 }

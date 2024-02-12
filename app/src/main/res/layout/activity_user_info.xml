@@ -9,8 +9,6 @@
     android:padding="50dp"
     tools:context=".activity.UserInfoActivity">
 
-    <!-- FrameLayout container for fragments -->
-
 
     <TextView
         android:layout_width="match_parent"

@@ -1,7 +1,5 @@
 package com.pac.imonline.activity.Fragments;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -14,37 +12,31 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Api.ApiService;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.HomeActivity;
 import com.pac.imonline.activity.Models.Posts;
-import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.adapter.PostsAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class HomeFragment extends Fragment {
 
     private View view;
-    public static RecyclerView recyclerView;
-    public static ArrayList<Posts> arrayList;
+    private RecyclerView recyclerView;
     private SwipeRefreshLayout refreshLayout;
     private PostsAdapter postsAdapter;
     private MaterialToolbar toolbar;
-    private SharedPreferences sharedPreferences;
-    private ApiService apiService;
-
-    public HomeFragment() {}
+    private AppDatabase appDatabase;
+    private List<PostEntity> postEntities;
 
     @NonNull
     @Override
@@ -55,47 +47,59 @@ public class HomeFragment extends Fragment {
     }
 
     private void init() {
-        sharedPreferences = getContext().getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        appDatabase = AppDatabase.getAppDatabase(getContext());
         recyclerView = view.findViewById(R.id.recyclerHome);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         refreshLayout = view.findViewById(R.id.swipeHome);
         toolbar = view.findViewById(R.id.toolbarHome);
 
-        // Dynamically check and set toolbar if the parent activity is HomeActivity
+        // Set toolbar if the parent activity is HomeActivity
         if (getActivity() instanceof HomeActivity) {
             ((HomeActivity) getActivity()).setSupportActionBar(toolbar);
         }
 
         setHasOptionsMenu(true);
-        apiService = RetrofitClient.createService();
-        getPosts();
 
-        refreshLayout.setOnRefreshListener(() -> getPosts());
+        refreshLayout.setOnRefreshListener(this::getPostsFromDatabase);
+        getPostsFromDatabase();
     }
 
-    private void getPosts() {
-        arrayList = new ArrayList<>();
+    private void getPostsFromDatabase() {
         refreshLayout.setRefreshing(true);
 
-        Call<List<Posts>> call = apiService.getPosts("Bearer " + sharedPreferences.getString("token", ""));
-        call.enqueue(new Callback<List<Posts>>() {
+        // Observe changes in postEntities
+        appDatabase.postDao().getAllPosts().observe(getViewLifecycleOwner(), new Observer<List<PostEntity>>() {
             @Override
-            public void onResponse(Call<List<Posts>> call, Response<List<Posts>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    arrayList.addAll(response.body());
-                    postsAdapter = new PostsAdapter(getContext(), arrayList);
-                    recyclerView.setAdapter(postsAdapter);
-                }
-                refreshLayout.setRefreshing(false);
-            }
+            public void onChanged(List<PostEntity> entities) {
+                // Update the UI with the new data
+                postEntities = entities;
 
-            @Override
-            public void onFailure(Call<List<Posts>> call, Throwable t) {
-                t.printStackTrace();
+                // Convert PostEntity objects to Posts objects
+                ArrayList<Posts> postsList = convertToPostsList(postEntities);
+
+                // Update RecyclerView with fetched posts
+                if (postsAdapter == null) {
+                    postsAdapter = new PostsAdapter(getContext(), postsList);
+                    recyclerView.setAdapter(postsAdapter);
+                } else {
+                    postsAdapter.updateList(postsList);
+                }
+
                 refreshLayout.setRefreshing(false);
             }
         });
+    }
+
+    private ArrayList<Posts> convertToPostsList(List<PostEntity> postEntities) {
+        ArrayList<Posts> postsList = new ArrayList<>();
+        for (PostEntity entity : postEntities) {
+            Posts post = new Posts();
+            post.setId(entity.getId());
+            post.setDescription(entity.getDescription());
+            postsList.add(post);
+        }
+        return postsList;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.pac.imonline.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
 
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -11,20 +12,11 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Api.ApiService;
-import com.pac.imonline.activity.Api.RetrofitClient;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.Fragments.HomeFragment;
-import com.pac.imonline.activity.Models.Posts;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import java.util.List;
 
 public class EditPostActivity extends AppCompatActivity {
 
@@ -33,13 +25,14 @@ public class EditPostActivity extends AppCompatActivity {
     private Button btnSave;
     private ProgressDialog dialog;
     private SharedPreferences sharedPreferences;
-    private ApiService apiService;
+    private AppDatabase appDatabase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_post);
         init();
+        appDatabase = AppDatabase.getAppDatabase(this);
     }
 
     private void init() {
@@ -51,7 +44,6 @@ public class EditPostActivity extends AppCompatActivity {
         position = getIntent().getIntExtra("position", 0);
         id = getIntent().getIntExtra("postId", 0);
         txtDesc.setText(getIntent().getStringExtra("text"));
-        apiService = RetrofitClient.createService();
 
         btnSave.setOnClickListener(view -> {
             if (!txtDesc.getText().toString().isEmpty()) {
@@ -64,28 +56,27 @@ public class EditPostActivity extends AppCompatActivity {
         dialog.setMessage("Saving");
         dialog.show();
 
-        apiService.updatePost("Bearer " + sharedPreferences.getString("token", ""), id, txtDesc.getText().toString())
-                .enqueue(new Callback<Void>() {
-                    @Override
-                    public void onResponse(Call<Void> call, Response<Void> response) {
-                        if (response.isSuccessful()) {
-                            // Update the post in the recycler view
-                            Posts post = HomeFragment.arrayList.get(position);
-                            post.setDesc(txtDesc.getText().toString());
-                            HomeFragment.arrayList.set(position, post);
-                            HomeFragment.recyclerView.getAdapter().notifyItemChanged(position);
-                            HomeFragment.recyclerView.getAdapter().notifyDataSetChanged();
-                            finish();
-                        }
-                        dialog.dismiss();
-                    }
+        // Save post to Room database
+        PostEntity postEntity = new PostEntity();
+        postEntity.setId(id);
+        postEntity.setDescription(txtDesc.getText().toString());
+        appDatabase.postDao().insert(postEntity);
 
-                    @Override
-                    public void onFailure(Call<Void> call, Throwable t) {
-                        t.printStackTrace();
-                        dialog.dismiss();
-                    }
-                });
+        // Observe the LiveData<List<PostEntity>> from the database
+        appDatabase.postDao().getAllPosts().observe(this, new Observer<List<PostEntity>>() {
+            @Override
+            public void onChanged(List<PostEntity> postEntities) {
+                if (postEntities != null) {
+                    // Access the post at the specified position
+                    PostEntity postEntity = postEntities.get(position);
+                    postEntity.setDescription(txtDesc.getText().toString());
+                    appDatabase.postDao().update(postEntity);
+
+                    dialog.dismiss();
+                    finish();
+                }
+            }
+        });
     }
 
     public void cancelEdit(View view) {

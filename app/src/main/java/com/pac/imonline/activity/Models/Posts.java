@@ -56,6 +56,9 @@ public class Posts {
     }
 
     public User getUser() {
+        if (user == null) {
+            user = new User();
+        }
         return user;
     }
 
@@ -69,5 +72,8 @@ public class Posts {
 
     public void setSelfLike(boolean selfLike) {
         this.selfLike = selfLike;
+    }
+
+    public void setDescription(String description) {
     }
 }

@@ -164,14 +164,10 @@ public class UserInfoActivity extends AppCompatActivity {
             public void run() {
                 appDatabase.userDao().registerUser(userEntity);
 
-                // Create a new instance of WalkthroughPagesAnimFragment
-                WalkthroughPagesAnimFragment walkthroughAnimFragment = new WalkthroughPagesAnimFragment();
-
-                // Use getSupportFragmentManager() if you are using AppCompatActivity
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.fragment_container, walkthroughAnimFragment)
-                        .addToBackStack(null)
-                        .commit();
+                // Navigate to MainActivity
+                Intent intent = new Intent(UserInfoActivity.this, HomeActivity.class);
+                startActivity(intent);
+                finish(); // This ensures that UserInfoActivity is closed
             }
         });
     }

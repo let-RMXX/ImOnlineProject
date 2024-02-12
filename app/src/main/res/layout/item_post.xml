@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/imgPostProfile"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@color/dark_grey"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingLeft="6dp">
+
+                <TextView
+                    android:id="@+id/txtPostName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Rui Machado"
+                    android:textColor="@color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtPostDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Jun 13"
+                    android:textColor="@color/dark_grey"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnPostOption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="8dp"
+                android:background="#00404348"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/baseline_menu_24"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtPostDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mauris luctus volutpat odio et convallis. Cras auctor magna nisl, et mattis ante posuere a. Sed fringilla dapibus nisl. Sed semper quam non eros auctor imperdiet. Sed ultricies nulla nisi, at sollicitudin turpis lobortis at. Nullam id maximus nisl, in aliquet diam. Donec orci augue, dapibus ac pellentesque blandit, pretium et justo. Fusce hendrerit aliquet eros non rutrum. Nunc volutpat porttitor scelerisque. Vestibulum semper risus sed pretium varius."
+            android:textSize="14sp"
+            android:textColor="@color/dark_grey"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="8dp"/>
+
+        <ImageView
+            android:id="@+id/imgPostPhoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:src="@color/darkgrey_one"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginLeft="12dp"
+            android:layout_marginBottom="12dp"
+            android:layout_marginTop="12dp">
+
+            <ImageButton
+                android:id="@+id/btnPostLike"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="12dp"
+                android:src="@drawable/baseline_favorite_outline"
+                android:background="#00404348"/>
+
+            <ImageButton
+                android:id="@+id/btnPostComment"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/baseline_comment"
+                android:background="#00404348"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtPostLikes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12 Likes"
+            android:textSize="13dp"
+            android:textStyle="bold"
+            android:layout_marginLeft="12dp"
+            android:textColor="@color/dark_grey"/>
+
+        <TextView
+            android:id="@+id/txtPostComments"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="View all 3 comments"
+            android:textSize="12dp"
+            android:textColor="@color/dark_grey"
+            android:layout_marginTop="4dp"
+            android:layout_marginLeft="12dp"
+            android:layout_marginBottom="20dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1px"
+            android:background="#ccc"/>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
