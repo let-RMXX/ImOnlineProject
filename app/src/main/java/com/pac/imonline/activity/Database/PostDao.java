@@ -22,4 +22,7 @@ public interface PostDao {
     @Update
     void update(PostEntity postEntity);
 
+    @Query("SELECT * FROM posts WHERE userId = :userId")
+    List<PostEntity> getPostsByUserId(int userId);
+
 }

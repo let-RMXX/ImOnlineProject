@@ -1,37 +1,63 @@
 package com.pac.imonline.activity;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.MenuItem;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Bundle;
-import android.view.MenuItem;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.pac.imonline.R;
+import com.pac.imonline.activity.AddPostActivity;
+import com.pac.imonline.activity.Database.AppDatabase;
+import com.pac.imonline.activity.Entities.UserEntity;
 import com.pac.imonline.activity.Fragments.AccountFragment;
 import com.pac.imonline.activity.Fragments.HomeFragment;
 
 public class HomeActivity extends AppCompatActivity {
 
     private FragmentManager fragmentManager;
+    private SharedPreferences sharedPreferences;
 
     private FloatingActionButton fab;
     private BottomNavigationView navigationView;
     private static final int GALLERY_ADD_POST = 2;
 
+    private AppDatabase appDatabase;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        Log.d("HomeActivity", "onCreate: Creating HomeActivity");
+
         fragmentManager = getSupportFragmentManager();
         fragmentManager.beginTransaction().replace(R.id.frameHomeContainer, new HomeFragment(), HomeFragment.class.getSimpleName()).commit();
+
+        sharedPreferences = getSharedPreferences("user_data", Context.MODE_PRIVATE);
+
+        appDatabase = AppDatabase.getAppDatabase(this);
+
+        if (appDatabase == null) {
+            Log.e("HomeActivity", "onCreate: AppDatabase is null");
+        } else {
+            Log.d("HomeActivity", "onCreate: AppDatabase initialized successfully");
+        }
+
         init();
+        loadUserData();
     }
 
     private void init() {
@@ -64,7 +90,15 @@ public class HomeActivity extends AppCompatActivity {
                         if (account != null) {
                             fragmentManager.beginTransaction().show(fragmentManager.findFragmentByTag(AccountFragment.class.getSimpleName())).commit();
                         } else {
-                            fragmentManager.beginTransaction().add(R.id.frameHomeContainer, new AccountFragment(), AccountFragment.class.getSimpleName()).commit();
+                            // Pass sharedPreferences data to AccountFragment
+                            Bundle bundle = new Bundle();
+                            bundle.putString("name", sharedPreferences.getString("name", ""));
+                            bundle.putString("lastname", sharedPreferences.getString("lastname", ""));
+                            bundle.putString("photoUrl", sharedPreferences.getString("photoUrl", ""));
+                            AccountFragment accountFragment = new AccountFragment();
+                            accountFragment.setArguments(bundle);
+
+                            fragmentManager.beginTransaction().add(R.id.frameHomeContainer, accountFragment, AccountFragment.class.getSimpleName()).commit();
                         }
                         break;
                     }
@@ -72,6 +106,28 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
     }
+
+    @SuppressLint("StaticFieldLeak")
+    private void loadUserData() {
+        new AsyncTask<Void, Void, UserEntity>() {
+            @Override
+            protected UserEntity doInBackground(Void... voids) {
+                return appDatabase.userDao().getUserByEmail(sharedPreferences.getString("email", ""));
+            }
+
+            @Override
+            protected void onPostExecute(UserEntity user) {
+                if (user != null) {
+                    int userId = user.getId();
+                    // Pass the userId to the AccountFragment via SharedPreferences
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putInt("userId", userId);
+                    editor.apply();
+                }
+            }
+        }.execute();
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {

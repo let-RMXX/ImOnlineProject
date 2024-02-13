@@ -8,19 +8,34 @@ import androidx.room.PrimaryKey;
 public class UserEntity {
 
     @PrimaryKey(autoGenerate = true)
-    Integer id;
+    private Integer id;
+
+    @ColumnInfo(name = "username")
+    private String username;
 
     @ColumnInfo(name = "name")
-    String name;
+    private String name;
 
     @ColumnInfo(name = "lastName")
-    String lastName;
+    private String lastName;
 
     @ColumnInfo(name = "email")
     String email;
 
     @ColumnInfo(name = "password")
     String password;
+
+    @ColumnInfo(name = "photo")
+    private byte[] photoData;
+
+    // Getters and setters
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public Integer getId() {
         return id;
@@ -36,6 +51,14 @@ public class UserEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getEmail() {
@@ -54,11 +77,11 @@ public class UserEntity {
         this.password = password;
     }
 
-    public String getLastName() {
-        return lastName;
+    public byte[] getPhotoData() {
+        return photoData;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setPhotoData(byte[] photoData) {
+        this.photoData = photoData;
     }
 }

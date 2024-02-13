@@ -1,11 +1,14 @@
 package com.pac.imonline.activity.Fragments;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -23,26 +26,23 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Api.RetrofitClient;
 import com.pac.imonline.activity.AuthActivity;
 import com.pac.imonline.activity.Constant;
+import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.EditUserInfoActivity;
+import com.pac.imonline.activity.Entities.PostEntity;
+import com.pac.imonline.activity.Entities.UserEntity;
 import com.pac.imonline.activity.HomeActivity;
-import com.pac.imonline.activity.Models.MyPostResponse;
 import com.pac.imonline.activity.Models.Posts;
 import com.pac.imonline.activity.Models.Posts;
 import com.pac.imonline.activity.Models.User;
 import com.pac.imonline.activity.adapter.AccountPostAdapter;
-import com.pac.imonline.activity.Api.ApiService;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class AccountFragment extends Fragment {
 
@@ -56,7 +56,7 @@ public class AccountFragment extends Fragment {
     private SharedPreferences preferences;
     private AccountPostAdapter adapter;
     private String imgUrl = "";
-    private ApiService apiService;
+    private AppDatabase appDatabase;
 
     public AccountFragment() {
     }
@@ -70,8 +70,14 @@ public class AccountFragment extends Fragment {
     }
 
     private void init() {
-        preferences = getContext().getSharedPreferences("user", Context.MODE_PRIVATE);
-        apiService = RetrofitClient.createService();
+        preferences = getContext().getSharedPreferences("user_data", Context.MODE_PRIVATE);
+        String name = preferences.getString("name", "");
+        String lastName = preferences.getString("lastname", "");
+        String photoUrl = preferences.getString("photoUrl", "");
+        int userId = preferences.getInt("userId", -1);
+
+        appDatabase = AppDatabase.getAppDatabase(getContext()); // Initialize AppDatabase here
+
         toolbar = view.findViewById(R.id.toolbarAccount);
         ((HomeActivity) getContext()).setSupportActionBar(toolbar);
         setHasOptionsMenu(true);
@@ -83,56 +89,82 @@ public class AccountFragment extends Fragment {
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
+        txtName.setText(name + " " + lastName);
+        // Load profile photo using Picasso or any other image loading library
+        if (!photoUrl.isEmpty()) {
+            Picasso.get().load(photoUrl).into(imgProfile);
+        }
+
         btnEditAccount.setOnClickListener(v -> {
             Intent i = new Intent(((HomeActivity) getContext()), EditUserInfoActivity.class);
+            i.putExtra("userId", userId);
             i.putExtra("imgUrl", imgUrl);
             startActivity(i);
         });
+
+        getData();
     }
 
+    @SuppressLint("StaticFieldLeak")
     private void getData() {
-        apiService.getMyPosts("Bearer " + preferences.getString("token", "")).enqueue(new Callback<MyPostResponse>() {
+        new AsyncTask<Void, Void, UserEntity>() {
             @Override
-            public void onResponse(Call<MyPostResponse> call, Response<MyPostResponse> response) {
-                if (response.isSuccessful()) {
-                    MyPostResponse myPostResponse = response.body();
-                    if (myPostResponse != null && myPostResponse.isSuccess()) {
-                        List<Posts> posts = myPostResponse.getPosts();
-                        updateUI(posts, myPostResponse.getUser());
-                    }
+            protected UserEntity doInBackground(Void... voids) {
+                return appDatabase.userDao().getUserByEmail(preferences.getString("email", ""));
+            }
+
+            @Override
+            protected void onPostExecute(UserEntity user) {
+                if (user != null) {
+                    Log.d("AccountFragment", "User data retrieved: " + user.getName() + " " + user.getLastName());
+                    new AsyncTask<Void, Void, List<PostEntity>>() {
+                        @Override
+                        protected List<PostEntity> doInBackground(Void... voids) {
+                            return appDatabase.postDao().getPostsByUserId(user.getId());
+                        }
+
+                        @Override
+                        protected void onPostExecute(List<PostEntity> postEntities) {
+                            List<Posts> posts = convertToPosts(postEntities);
+                            updateUI(posts, user);
+                        }
+                    }.execute();
                 }
             }
-
-
-            @Override
-            public void onFailure(Call<MyPostResponse> call, Throwable t) {
-                t.printStackTrace();
-            }
-        });
+        }.execute();
     }
 
-    private void updateUI(List<Posts> posts, User user) {
+
+    private List<Posts> convertToPosts(List<PostEntity> postEntities) {
+        List<Posts> posts = new ArrayList<>();
+        for (PostEntity postEntity : postEntities) {
+            Posts post = new Posts();
+            post.setId(postEntity.getId());
+            post.setLikes(postEntity.getLikes());
+            post.setComments(postEntity.getComments());
+            post.setDate(postEntity.getDate());
+            post.setDesc(postEntity.getDescription());
+            post.setPhoto(postEntity.getPhoto());
+            posts.add(post);
+        }
+        return posts;
+    }
+
+    private void updateUI(List<Posts> posts, UserEntity user) {
         arrayList = new ArrayList<>(posts);
         txtName.setText(user.getName() + " " + user.getLastName());
         txtPostsCount.setText(String.valueOf(arrayList.size()));
-        Picasso.get().load(Constant.URL + "storage/profiles/" + user.getPhoto()).into(imgProfile);
+        Picasso.get().load(Constant.URL + "storage/profiles/" + user.getPhotoData()).into(imgProfile);
         adapter = new AccountPostAdapter(getContext(), arrayList);
         recyclerView.setAdapter(adapter);
-        imgUrl = Constant.URL + "storage/profiles/" + user.getPhoto();
+        imgUrl = Constant.URL + "storage/profiles/" + user.getPhotoData();
     }
-
-
-
-
-
-
 
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         inflater.inflate(R.menu.menu_account, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
-
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
@@ -158,20 +190,9 @@ public class AccountFragment extends Fragment {
     }
 
     private void logout() {
-        apiService.logout("Bearer " + preferences.getString("token", "")).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    clearSharedPreferences();
-                    navigateToAuthActivity();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                t.printStackTrace();
-            }
-        });
+        // Clear SharedPreferences and navigate to AuthActivity
+        clearSharedPreferences();
+        navigateToAuthActivity();
     }
 
     private void clearSharedPreferences() {
@@ -183,19 +204,5 @@ public class AccountFragment extends Fragment {
     private void navigateToAuthActivity() {
         startActivity(new Intent(((HomeActivity) getContext()), AuthActivity.class));
         ((HomeActivity) getContext()).finish();
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        if (!hidden) {
-            getData();
-        }
-        super.onHiddenChanged(hidden);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        getData();
     }
 }

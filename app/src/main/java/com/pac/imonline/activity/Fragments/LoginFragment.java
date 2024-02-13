@@ -1,6 +1,8 @@
 package com.pac.imonline.activity.Fragments;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,11 +18,17 @@ import com.pac.imonline.R;
 import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Database.UserDao;
 import com.pac.imonline.activity.Entities.UserEntity;
+import com.pac.imonline.activity.HomeActivity;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class LoginFragment extends Fragment {
 
     private EditText enterEmailLogin, enterPasswordLogin;
     private Button signInButton;
+    private SharedPreferences sharedPreferences;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public LoginFragment() {
 
@@ -36,6 +44,7 @@ public class LoginFragment extends Fragment {
         signInButton = view.findViewById(R.id.signInButton);
 
         ImageView backButton = view.findViewById(R.id.loginBackButton);
+        sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE);
 
         signInButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -47,7 +56,7 @@ public class LoginFragment extends Fragment {
                     AppDatabase appDatabase = AppDatabase.getAppDatabase(requireContext());
                     final UserDao userDao = appDatabase.userDao();
 
-                    new Thread(new Runnable() {
+                    executorService.execute(new Runnable() {
                         @Override
                         public void run() {
                             UserEntity user = userDao.loginUser(email, password);
@@ -57,20 +66,23 @@ public class LoginFragment extends Fragment {
                                     if (user != null) {
                                         Toast.makeText(requireContext(), "Login Successful!", Toast.LENGTH_SHORT).show();
 
-                                        // Create a new instance of WalkthroughPagesAnimFragment
-                                        WalkthroughPagesAnimFragment walkthroughAnimFragment = new WalkthroughPagesAnimFragment();
+                                        // Save user data to SharedPreferences
+                                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                                        editor.putString("username", user.getUsername());
+                                        editor.putString("email", user.getEmail());
+                                        editor.putInt("userId", user.getId());
+                                        editor.apply();
 
-                                        getActivity().getSupportFragmentManager().beginTransaction()
-                                                .replace(R.id.fragment_container, walkthroughAnimFragment)
-                                                .addToBackStack(null)
-                                                .commit();
+                                        Intent intent = new Intent(getActivity(), HomeActivity.class);
+                                        startActivity(intent);
+                                        getActivity().finish();
                                     } else {
                                         Toast.makeText(requireContext(), "Invalid credentials", Toast.LENGTH_SHORT).show();
                                     }
                                 }
                             });
                         }
-                    }).start();
+                    });
 
                 } else {
                     Toast.makeText(requireContext(), "Fill in all fields!", Toast.LENGTH_SHORT).show();
@@ -95,3 +107,4 @@ public class LoginFragment extends Fragment {
         return !email.isEmpty() && !password.isEmpty();
     }
 }
+

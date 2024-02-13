@@ -6,6 +6,7 @@ import android.content.Context;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.TypeConverters;
 
 import com.pac.imonline.activity.Community;
 import com.pac.imonline.activity.CommunityDao;
@@ -13,7 +14,8 @@ import com.pac.imonline.activity.Entities.CommentEntity;
 import com.pac.imonline.activity.Entities.PostEntity;
 import com.pac.imonline.activity.Entities.UserEntity;
 
-@Database(entities = {Community.class, UserEntity.class, PostEntity.class, CommentEntity.class}, version = 4, exportSchema = false)
+@TypeConverters(Converters.class)
+@Database(entities = {Community.class, UserEntity.class, PostEntity.class, CommentEntity.class}, version = 5, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String dbName = "imonlinedb";
