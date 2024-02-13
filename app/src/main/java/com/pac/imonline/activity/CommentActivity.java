@@ -57,15 +57,9 @@ public class CommentActivity extends AppCompatActivity {
         appDatabase.postDao().getAllPosts().observe(this, new Observer<List<PostEntity>>() {
             @Override
             public void onChanged(List<PostEntity> posts) {
-                // Update UI or perform actions with the posts data
-                // For now, we just log the posts size
                 if (posts != null) {
-                    // Adjust this to your requirement
                     for (PostEntity post : posts) {
                         if (post.getId() == postId) {
-                            // Found the post, now update UI or perform actions
-                            // For example, you can get comments for this post from API
-                            // getComments();
                             break;
                         }
                     }
@@ -74,13 +68,10 @@ public class CommentActivity extends AppCompatActivity {
         });
     }
 
-    // Method to fetch comments from API (if needed)
-
     public void goBack(View view) {
         super.onBackPressed();
     }
 
     public void addComment(View view) {
-        // Method to add a new comment
     }
 }
