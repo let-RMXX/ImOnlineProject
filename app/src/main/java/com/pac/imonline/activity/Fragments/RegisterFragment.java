@@ -1,7 +1,10 @@
 package com.pac.imonline.activity.Fragments;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,31 +16,23 @@ import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 
 import com.pac.imonline.R;
-import com.pac.imonline.activity.Api.UserService;
-import com.pac.imonline.activity.Constant;
 import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Database.UserDao;
+import com.pac.imonline.activity.EditUserInfoActivity;
 import com.pac.imonline.activity.Entities.UserEntity;
-import com.pac.imonline.activity.UserInfoActivity;
+import com.pac.imonline.activity.Fragments.LoginRegisterFragment;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RegisterFragment extends Fragment {
 
     private EditText enterUsernameRegister, enterEmailRegister, enterPasswordRegister;
     private Button signUpButton;
     private ImageView backButton;
+    private SharedPreferences sharedPreferences;
 
     private UserDao userDao;
-    private UserService userService;
-
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public RegisterFragment() {
@@ -56,24 +51,17 @@ public class RegisterFragment extends Fragment {
         backButton = view.findViewById(R.id.registerBackButton);
 
         userDao = AppDatabase.getAppDatabase(requireContext()).userDao();
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(Constant.HOME)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        userService = retrofit.create(UserService.class);
+        sharedPreferences = requireActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE);
 
         signUpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final UserEntity userEntity = new UserEntity();
-                userEntity.setName(enterUsernameRegister.getText().toString());
+                userEntity.setUsername(enterUsernameRegister.getText().toString());
                 userEntity.setEmail(enterEmailRegister.getText().toString());
                 userEntity.setPassword(enterPasswordRegister.getText().toString());
 
                 if (validateInput(userEntity)) {
-                    // Check if username and email exist locally
                     executorService.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -83,6 +71,7 @@ public class RegisterFragment extends Fragment {
                 } else {
                     Toast.makeText(requireContext(), "Fill All Fields!", Toast.LENGTH_SHORT).show();
                 }
+                Log.d("RegisterFragment", "User ID: " + userEntity.getId());
             }
         });
 
@@ -100,7 +89,7 @@ public class RegisterFragment extends Fragment {
     }
 
     private void checkLocalUserExistence(final UserEntity userEntity) {
-        boolean userExists = userDao.getUserByUsername(userEntity.getName()) != null ||
+        boolean userExists = userDao.getUserByUsername(userEntity.getUsername()) != null ||
                 userDao.getUserByEmail(userEntity.getEmail()) != null;
 
         if (userExists) {
@@ -111,47 +100,8 @@ public class RegisterFragment extends Fragment {
                 }
             });
         } else {
-            // If the username and email don't exist locally, proceed with remote registration
-            registerUserRemotely(userEntity);
+            registerUserLocally(userEntity);
         }
-    }
-
-    private void registerUserRemotely(final UserEntity userEntity) {
-        Call<Void> call = userService.registerUser(userEntity);
-        call.enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                if (response.isSuccessful()) {
-                    // Registration successful remotely, proceed with local registration
-                    registerUserLocally(userEntity);
-                } else {
-                    // Handle remote registration failure
-                    requireActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(requireContext(), "Remote Registration Failed. Please try again.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
-                    // Register user locally even if remote registration fails
-                    registerUserLocally(userEntity);
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                // Handle network error
-                requireActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(requireContext(), "Network Error. Please check your connection.", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-                // Register user locally even if network error occurs
-                registerUserLocally(userEntity);
-            }
-        });
     }
 
     private void registerUserLocally(final UserEntity userEntity) {
@@ -160,22 +110,36 @@ public class RegisterFragment extends Fragment {
             public void run() {
                 userDao.registerUser(userEntity);
 
+                // Retrieve the user ID using the email address
+                UserEntity newUser = userDao.getUserByEmail(userEntity.getEmail());
+                int userId = newUser.getId();
+
+                // Save user data to SharedPreferences
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("name", userEntity.getName());
+                editor.putString("lastname", userEntity.getLastName());
+                editor.apply();
+
                 requireActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         Toast.makeText(requireContext(), "User Successfully Registered Locally!", Toast.LENGTH_SHORT).show();
-                        // Start UserInfoActivity
-                        Intent intent = new Intent(getActivity(), UserInfoActivity.class);
+
+                        Intent intent = new Intent(getActivity(), EditUserInfoActivity.class);
+                        intent.putExtra("user_id", userId); // Use the obtained user ID
                         startActivity(intent);
-                        getActivity().finish(); // Finish current activity
+                        getActivity().finish();
                     }
                 });
             }
         });
     }
 
+
+
+
     private boolean validateInput(UserEntity userEntity) {
-        return !userEntity.getName().isEmpty() &&
+        return !userEntity.getUsername().isEmpty() &&
                 !userEntity.getEmail().isEmpty() &&
                 !userEntity.getPassword().isEmpty();
     }
