@@ -12,17 +12,23 @@
         android:layout_height="wrap_content"
         android:elevation="1dp"
         android:theme="@style/AppTheme.BottomAppBar"
-        app:title="">
+        app:title=""
+        app:layout_scrollFlags="scroll|enterAlways">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Im Online"
-            android:fontFamily=""
             android:textSize="20sp"
-            android:textColor="@color/dark_blue"/>
+            android:textColor="@color/dark_blue" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
     </com.google.android.material.appbar.MaterialToolbar>
+
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeHome"

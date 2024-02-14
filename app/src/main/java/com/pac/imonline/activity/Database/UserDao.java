@@ -27,4 +27,7 @@ public interface UserDao {
 
     @Update
     void updateUser(UserEntity userEntity);
+
+    @Query("SELECT photo FROM users WHERE id = :userId")
+    byte[] getProfileImageData(int userId);
 }

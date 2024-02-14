@@ -2,6 +2,7 @@ package com.pac.imonline.activity.Database;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
@@ -25,4 +26,6 @@ public interface PostDao {
     @Query("SELECT * FROM posts WHERE userId = :userId")
     List<PostEntity> getPostsByUserId(int userId);
 
+    @Delete
+    void deletePost(PostEntity postEntity);
 }

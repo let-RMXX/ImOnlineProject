@@ -1,10 +1,9 @@
 package com.pac.imonline.activity.adapter;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,10 +22,11 @@ import com.pac.imonline.activity.CommentActivity;
 import com.pac.imonline.activity.EditPostActivity;
 import com.pac.imonline.activity.Models.Posts;
 import com.pac.imonline.activity.Entities.PostEntity;
+import com.pac.imonline.activity.Entities.UserEntity;
+import com.pac.imonline.activity.Database.AppDatabase;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -35,15 +35,13 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
     private Context context;
     private ArrayList<Posts> list;
     private ArrayList<Posts> listAll;
-    private SharedPreferences preferences;
-    private String token;
+    private AppDatabase appDatabase;
 
     public PostsAdapter(Context context, ArrayList<Posts> list) {
         this.context = context;
         this.list = list;
         this.listAll = new ArrayList<>(list);
-        preferences = context.getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
-        token = preferences.getString("token", "");
+        appDatabase = AppDatabase.getAppDatabase(context);
     }
 
     @NonNull
@@ -57,16 +55,10 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
     public void onBindViewHolder(@NonNull PostsHolder holder, int position) {
         Posts post = list.get(position);
 
-        byte[] profileImageData = getProfileImageData(post);
-
-        if (profileImageData != null) {
-            holder.imgProfile.setImageBitmap(BitmapFactory.decodeByteArray(profileImageData, 0, profileImageData.length));
-        } else {
-            holder.imgProfile.setImageResource(R.drawable.default_profile_image);
-        }
+        // Load profile image asynchronously
+        loadProfileImage(post.getUser().getId(), holder);
 
         holder.txtDesc.setText(post.getDesc());
-        // Set other views accordingly
 
         // Set onClickListener for the comment button
         holder.btnComment.setOnClickListener(v -> {
@@ -95,13 +87,54 @@ public class PostsAdapter extends RecyclerView.Adapter<PostsAdapter.PostsHolder>
         });
     }
 
-    private byte[] getProfileImageData(Posts post) {
-        // Implement this method to retrieve profile image data
-        return null;
+    private void loadProfileImage(int userId, PostsHolder holder) {
+        // Use AsyncTask to perform database operation asynchronously
+        class GetProfileImageTask extends AsyncTask<Void, Void, byte[]> {
+            @Override
+            protected byte[] doInBackground(Void... voids) {
+                // Retrieve profile image data from the database in the background
+                UserEntity user = appDatabase.userDao().getUserById(userId);
+                if (user != null) {
+                    return user.getPhotoData();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(byte[] profileImageData) {
+                // Update the UI with the retrieved profile image data
+                if (profileImageData != null) {
+                    holder.imgProfile.setImageBitmap(BitmapFactory.decodeByteArray(profileImageData, 0, profileImageData.length));
+                } else {
+                    holder.imgProfile.setImageResource(R.drawable.default_profile_image);
+                }
+            }
+        }
+
+        // Execute the AsyncTask
+        GetProfileImageTask task = new GetProfileImageTask();
+        task.execute();
     }
 
     private void deletePost(int postId, int position) {
-        // Implement deletion logic here
+        PostEntity postEntityToDelete = getPostEntity(postId);
+        if (postEntityToDelete != null) {
+            appDatabase.postDao().deletePost(postEntityToDelete);
+
+            // Remove post from recycler view
+            list.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
+    // Helper method to retrieve PostEntity object associated with postId
+    private PostEntity getPostEntity(int postId) {
+        for (Posts post : listAll) {
+            if (post.getId() == postId) {
+                return post.getPostEntity();
+            }
+        }
+        return null;
     }
 
     @Override

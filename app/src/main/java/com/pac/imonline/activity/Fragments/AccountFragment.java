@@ -70,13 +70,12 @@ public class AccountFragment extends Fragment {
     }
 
     private void init() {
+        appDatabase = AppDatabase.getAppDatabase(getContext());
+
         preferences = getContext().getSharedPreferences("user_data", Context.MODE_PRIVATE);
         String name = preferences.getString("name", "");
         String lastName = preferences.getString("lastname", "");
         String photoUrl = preferences.getString("photoUrl", "");
-        int userId = preferences.getInt("userId", -1);
-
-        appDatabase = AppDatabase.getAppDatabase(getContext()); // Initialize AppDatabase here
 
         toolbar = view.findViewById(R.id.toolbarAccount);
         ((HomeActivity) getContext()).setSupportActionBar(toolbar);
@@ -90,12 +89,13 @@ public class AccountFragment extends Fragment {
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
         txtName.setText(name + " " + lastName);
-        // Load profile photo using Picasso or any other image loading library
+        // Load profile photo using Picasso
         if (!photoUrl.isEmpty()) {
             Picasso.get().load(photoUrl).into(imgProfile);
         }
 
         btnEditAccount.setOnClickListener(v -> {
+            int userId = preferences.getInt("userId", -1);
             Intent i = new Intent(((HomeActivity) getContext()), EditUserInfoActivity.class);
             i.putExtra("userId", userId);
             i.putExtra("imgUrl", imgUrl);
@@ -104,6 +104,7 @@ public class AccountFragment extends Fragment {
 
         getData();
     }
+
 
     @SuppressLint("StaticFieldLeak")
     private void getData() {

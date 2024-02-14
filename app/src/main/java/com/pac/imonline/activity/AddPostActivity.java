@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,7 +24,6 @@ import com.pac.imonline.R;
 import com.pac.imonline.activity.Database.AppDatabase;
 import com.pac.imonline.activity.Entities.PostEntity;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public class AddPostActivity extends AppCompatActivity {
@@ -44,9 +44,18 @@ public class AddPostActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_post);
         init();
 
-        sharedPreferences = getApplicationContext().getSharedPreferences("user", Context.MODE_PRIVATE);
+        sharedPreferences = getApplicationContext().getSharedPreferences("user_data", Context.MODE_PRIVATE);
         appDatabase = AppDatabase.getAppDatabase(this);
+
+        // Log the user ID retrieved from SharedPreferences
+        int userId = sharedPreferences.getInt("userId", -1);
+        if (userId != -1) {
+            Log.d("AddPostActivity", "User ID retrieved successfully: " + userId);
+        } else {
+            Log.e("AddPostActivity", "User ID not found in SharedPreferences");
+        }
     }
+
 
     private void init() {
         dialog = new ProgressDialog(this);
@@ -77,27 +86,38 @@ public class AddPostActivity extends AppCompatActivity {
         dialog.setMessage("Posting");
         dialog.show();
 
-        // Save post to Room Database asynchronously using AsyncTask
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-                // Insert post into Room Database
-                PostEntity postEntity = new PostEntity();
-                postEntity.setDescription(txtDesc.getText().toString().trim());
-                postEntity.setImageUri("");
-                appDatabase.postDao().insert(postEntity);
-                return null;
-            }
+        // Retrieve user ID from SharedPreferences
+        int userId = sharedPreferences.getInt("userId", -1);
 
-            @Override
-            protected void onPostExecute(Void aVoid) {
-                super.onPostExecute(aVoid);
-                // After posting, navigate to HomeActivity
-                startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
-                finish();
-                dialog.dismiss();
-            }
-        }.execute();
+        // Check if user ID is valid
+        if (userId != -1) {
+            // Save post to Room Database asynchronously using AsyncTask
+            new AsyncTask<Void, Void, Void>() {
+                @Override
+                protected Void doInBackground(Void... voids) {
+                    // Insert post into Room Database
+                    PostEntity postEntity = new PostEntity();
+                    postEntity.setDescription(txtDesc.getText().toString().trim());
+                    postEntity.setImageUri("");
+                    postEntity.setUserId(userId); // Set the user ID for the post
+                    appDatabase.postDao().insert(postEntity);
+                    return null;
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    super.onPostExecute(aVoid);
+                    // After posting, navigate to HomeActivity
+                    startActivity(new Intent(AddPostActivity.this, HomeActivity.class));
+                    finish();
+                    dialog.dismiss();
+                }
+            }.execute();
+        } else {
+            // If user ID is invalid, show an error message
+            Toast.makeText(this, "User ID not found", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        }
     }
 
     public void cancelPost(View view) {
