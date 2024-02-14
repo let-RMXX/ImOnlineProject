@@ -68,7 +68,6 @@ public class HomeFragment extends Fragment {
     private void getPostsFromDatabase() {
         refreshLayout.setRefreshing(true);
 
-        // Observe changes in postEntities
         appDatabase.postDao().getAllPosts().observe(getViewLifecycleOwner(), new Observer<List<PostEntity>>() {
             @Override
             public void onChanged(List<PostEntity> entities) {

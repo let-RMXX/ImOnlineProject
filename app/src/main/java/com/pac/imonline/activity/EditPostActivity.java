@@ -3,9 +3,11 @@ package com.pac.imonline.activity;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -52,6 +54,7 @@ public class EditPostActivity extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("StaticFieldLeak")
     private void savePost() {
         dialog.setMessage("Saving");
         dialog.show();
@@ -60,23 +63,45 @@ public class EditPostActivity extends AppCompatActivity {
         PostEntity postEntity = new PostEntity();
         postEntity.setId(id);
         postEntity.setDescription(txtDesc.getText().toString());
-        appDatabase.postDao().insert(postEntity);
 
-        // Observe the LiveData<List<PostEntity>> from the database
-        appDatabase.postDao().getAllPosts().observe(this, new Observer<List<PostEntity>>() {
+        // Perform Room database operations asynchronously using AsyncTask
+        new AsyncTask<Void, Void, Void>() {
             @Override
-            public void onChanged(List<PostEntity> postEntities) {
-                if (postEntities != null) {
-                    // Access the post at the specified position
-                    PostEntity postEntity = postEntities.get(position);
-                    postEntity.setDescription(txtDesc.getText().toString());
-                    appDatabase.postDao().update(postEntity);
-
-                    dialog.dismiss();
-                    finish();
-                }
+            protected Void doInBackground(Void... voids) {
+                appDatabase.postDao().insert(postEntity);
+                return null;
             }
-        });
+
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                // Observe the LiveData<List<PostEntity>> from the database
+                appDatabase.postDao().getAllPosts().observe(EditPostActivity.this, new Observer<List<PostEntity>>() {
+                    @Override
+                    public void onChanged(List<PostEntity> postEntities) {
+                        if (postEntities != null) {
+                            // Access the post at the specified position
+                            PostEntity updatedPostEntity = postEntities.get(position);
+                            updatedPostEntity.setDescription(txtDesc.getText().toString());
+
+                            // Update the post asynchronously using another AsyncTask
+                            new AsyncTask<Void, Void, Void>() {
+                                @Override
+                                protected Void doInBackground(Void... voids) {
+                                    appDatabase.postDao().update(updatedPostEntity);
+                                    return null;
+                                }
+
+                                @Override
+                                protected void onPostExecute(Void aVoid) {
+                                    dialog.dismiss();
+                                    finish();
+                                }
+                            }.execute();
+                        }
+                    }
+                });
+            }
+        }.execute();
     }
 
     public void cancelEdit(View view) {

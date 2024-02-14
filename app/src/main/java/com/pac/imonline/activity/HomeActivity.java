@@ -9,7 +9,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -112,22 +111,31 @@ public class HomeActivity extends AppCompatActivity {
         new AsyncTask<Void, Void, UserEntity>() {
             @Override
             protected UserEntity doInBackground(Void... voids) {
-                return appDatabase.userDao().getUserByEmail(sharedPreferences.getString("email", ""));
+                try {
+                    return appDatabase.userDao().getUserByEmail(sharedPreferences.getString("email", ""));
+                } catch (Exception e) {
+                    Log.e("HomeActivity", "Error retrieving user data", e);
+                    return null;
+                }
             }
 
             @Override
             protected void onPostExecute(UserEntity user) {
                 if (user != null) {
                     int userId = user.getId();
-                    // Pass the userId to the AccountFragment via SharedPreferences
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putInt("userId", userId);
                     editor.apply();
+                    boolean applyResult = editor.commit();
+                    Log.d("HomeActivity", "SharedPreferences apply result: " + applyResult);
+                    Log.d("HomeActivity", "User ID retrieved and stored successfully: " + userId);
+                    Log.d("HomeActivity", "Retrieved user's email: " + user.getEmail());
+                } else {
+                    Log.e("HomeActivity", "Failed to retrieve user ID");
                 }
             }
         }.execute();
     }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {

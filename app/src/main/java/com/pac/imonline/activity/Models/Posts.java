@@ -1,11 +1,14 @@
 package com.pac.imonline.activity.Models;
 
+import com.pac.imonline.activity.Entities.PostEntity;
+
 public class Posts {
 
     private int id,likes,comments;
     private String date,desc,photo;
     private User user;
     private boolean selfLike;
+    private PostEntity postEntity;
 
     public int getId() {
         return id;
@@ -72,6 +75,14 @@ public class Posts {
 
     public void setSelfLike(boolean selfLike) {
         this.selfLike = selfLike;
+    }
+
+    public PostEntity getPostEntity() {
+        return postEntity;
+    }
+
+    public void setPostEntity(PostEntity postEntity) {
+        this.postEntity = postEntity;
     }
 
     public void setDescription(String description) {
